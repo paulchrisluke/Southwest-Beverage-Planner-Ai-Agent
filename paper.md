@@ -29,7 +29,7 @@ Mike, now managing service inventory at Southwest, shared the complexities of hi
 
 When Mike first shared his data in 2018, artificial intelligence was still in its adolescence. The prevailing wisdom required massive datasets - typically 10+ million rows ([Machine Learning for Inventory Management](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3256643)) - to train effective models. Human error in manual data entry posed additional challenges, often corrupting training data ([Benefits, Challenges, and Limitations of Inventory Control Using Machine Learning Algorithms](https://link.springer.com/article/10.1007/s12597-024-00839-0)). These limitations made AI seem unsuitable for Mike's beverage planning challenge at the time.
 
-However, the landscape of both flight data and AI has transformed dramatically. The OpenSky Network API now provides comprehensive real-time flight data including exact departure times, aircraft types, and route information through their Python API. This data accessibility, combined with advances in machine learning, has revolutionized what's possible. Recent studies show that integrating real-time data into airline operations can improve efficiency by 12-18% ([AI-CARGO: A Data-Driven Air-Cargo Revenue Management System](https://arxiv.org/abs/1905.09130)), while modern AI techniques can effectively train on smaller, quality datasets through transfer learning and synthetic data generation ([Autonomous Airline Revenue Management](https://arxiv.org/abs/1902.06824)).
+However, the landscape of both flight data and AI has transformed dramatically. The OpenSky Network, a community-driven network of ADS-B receivers, now provides comprehensive historical flight data through their research-focused API. This includes exact departure times, aircraft types, and route information, enabling detailed analysis of flight patterns and operations. The OpenSky Network's commitment to open data for research has made it possible to analyze large-scale flight operations without relying on proprietary airline data. This data accessibility, combined with advances in machine learning, has revolutionized what's possible. Recent studies show that integrating real-time data into airline operations can improve efficiency by 12-18% ([AI-CARGO: A Data-Driven Air-Cargo Revenue Management System](https://arxiv.org/abs/1905.09130)), while modern AI techniques can effectively train on smaller, quality datasets through transfer learning and synthetic data generation ([Autonomous Airline Revenue Management](https://arxiv.org/abs/1902.06824)).
 
 The aviation industry has already begun embracing these advances. AI applications in gate assignment optimization and fuel load planning have achieved improvement rates of 10-20% over traditional methods ([AI Solutions and Data Platforms for the Aviation Industry](https://www.microsoft.com/en-us/industry/blog/manufacturing-and-mobility/2024/10/09/ai-solutions-and-data-platforms-for-the-aviation-industry/)). Similar approaches in retail inventory management have demonstrated stock optimization improvements of 15-25% ([Exploring AI-Powered Inventory Optimization](https://industrytoday.com/exploring-ai-powered-inventory-optimization/)). These successes suggest comparable potential in beverage planning.
 
@@ -54,11 +54,16 @@ Our research methodology employs a systematic approach to data collection, proce
 ## Data Collection Framework
 
 ### Flight Data Collection
-1. **Source:** OpenSky Network API (Anonymous access)
-   - Coverage: All Southwest Airlines (SWA) domestic US flights
-   - Collection frequency: Daily batches
-   - Rate limits: 400 requests per 24-hour period
-   - Data points: Flight numbers, routes, aircraft types, departure/arrival times
+1. **Source:** The OpenSky Network (https://opensky-network.org)
+   - Coverage: All Southwest Airlines (SWA) domestic US flights at 22 major hubs and focus cities
+   - Collection frequency: Historical data in 2-hour intervals
+   - Data points: Flight numbers, routes, aircraft types, departure/arrival times, state vectors
+   - Access method: OpenSky Network REST API with authenticated access
+   - Data limitations: 
+     - Historical data must be retrieved in intervals smaller than 2 hours
+     - Rate limiting and access restrictions apply
+     - Data is used for research purposes only in accordance with OpenSky Network terms
+     - Citation: See [1] in Sources section
 
 2. **Weather Data Integration**
    - Source: National Weather Service API
@@ -222,6 +227,10 @@ This methodology is designed to be reproducible and scalable, with clear documen
 # Conclusion:
 
 # Sources:
+
+[1] Matthias Schäfer, Martin Strohmeier, Vincent Lenders, Ivan Martinovic and Matthias Wilhelm.
+"Bringing Up OpenSky: A Large-scale ADS-B Sensor Network for Research".
+In Proceedings of the 13th IEEE/ACM International Symposium on Information Processing in Sensor Networks (IPSN), pages 83-94, April 2014.
 
 Certainly! Here are ten scholarly articles and industry reports focusing on AI models and methods for inventory optimization in the aviation industry, presented in markdown format with detailed summaries and links:
 
