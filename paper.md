@@ -8,7 +8,7 @@ Our research shows that this flight-specific AI approach can reduce both over-st
 
 # Hypothesis: 
 
-We hypothesize that an AI model, trained on historical beverage consumption data and integrated with real-time flight data from the AirLabs API, can predict optimal beverage loads for specific flight numbers with greater accuracy than current manual planning methods. Specifically:
+We hypothesize that an AI model, trained on historical beverage consumption data and integrated with real-time flight data from the OpenSky Network API, can predict optimal beverage loads for specific flight numbers with greater accuracy than current manual planning methods. Specifically:
 
 1. The AI model will predict beverage consumption patterns within a 10% margin of error when tested against actual consumption data for individual flight numbers (e.g., WN21 from LAX to JFK).
 2. The model's predictions will lead to at least a 15% reduction in beverage overstock by considering flight-specific data including:
@@ -29,14 +29,18 @@ Mike, now managing service inventory at Southwest, shared the complexities of hi
 
 When Mike first shared his data in 2018, artificial intelligence was still in its adolescence. The prevailing wisdom required massive datasets - typically 10+ million rows ([Machine Learning for Inventory Management](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3256643)) - to train effective models. Human error in manual data entry posed additional challenges, often corrupting training data ([Benefits, Challenges, and Limitations of Inventory Control Using Machine Learning Algorithms](https://link.springer.com/article/10.1007/s12597-024-00839-0)). These limitations made AI seem unsuitable for Mike's beverage planning challenge at the time.
 
-However, the landscape of both flight data and AI has transformed dramatically. Modern flight tracking APIs, like AirLabs, now provide comprehensive real-time data including exact departure times, aircraft types, and route information. This data accessibility, combined with advances in machine learning, has revolutionized what's possible. Recent studies show that integrating real-time data into airline operations can improve efficiency by 12-18% ([AI-CARGO: A Data-Driven Air-Cargo Revenue Management System](https://arxiv.org/abs/1905.09130)), while modern AI techniques can effectively train on smaller, quality datasets through transfer learning and synthetic data generation ([Autonomous Airline Revenue Management](https://arxiv.org/abs/1902.06824)).
+However, the landscape of both flight data and AI has transformed dramatically. The OpenSky Network API now provides comprehensive real-time flight data including exact departure times, aircraft types, and route information through their Python API. This data accessibility, combined with advances in machine learning, has revolutionized what's possible. Recent studies show that integrating real-time data into airline operations can improve efficiency by 12-18% ([AI-CARGO: A Data-Driven Air-Cargo Revenue Management System](https://arxiv.org/abs/1905.09130)), while modern AI techniques can effectively train on smaller, quality datasets through transfer learning and synthetic data generation ([Autonomous Airline Revenue Management](https://arxiv.org/abs/1902.06824)).
 
 The aviation industry has already begun embracing these advances. AI applications in gate assignment optimization and fuel load planning have achieved improvement rates of 10-20% over traditional methods ([AI Solutions and Data Platforms for the Aviation Industry](https://www.microsoft.com/en-us/industry/blog/manufacturing-and-mobility/2024/10/09/ai-solutions-and-data-platforms-for-the-aviation-industry/)). Similar approaches in retail inventory management have demonstrated stock optimization improvements of 15-25% ([Exploring AI-Powered Inventory Optimization](https://industrytoday.com/exploring-ai-powered-inventory-optimization/)). These successes suggest comparable potential in beverage planning.
 
 A decade after my initial conversation with Mike, the convergence of improved data accessibility, advanced AI capabilities, and the critical need for weight optimization has created an unprecedented opportunity. The same flight that sparked this paper - my trip to Vancouver where I pulled out my laptop and began outlining this solution - represents thousands of flights daily that could benefit from AI-driven beverage optimization. While the technical foundation has evolved, the core challenge remains unchanged: how to ensure every flight carries exactly the beverages it needs, no more and no less.
 
 To address this challenge, our research requires four key data components:
-1. Real-time flight data (routes, schedules, aircraft types) via the AirLabs API
+1. Real-time flight data (routes, schedules, aircraft types) via the OpenSky Network API
+   - Anonymous access with 400 requests/day limit
+   - Support for retrieving flight data in 2-hour intervals
+   - Ability to track specific aircraft and routes
+   - Comprehensive flight state information including position, altitude, and velocity
 2. Historical fuel cost data to quantify weight-related savings
 3. Detailed beverage inventory specifications (weights, types, quantities)
 4. Historical consumption patterns (initial and final counts per flight)
@@ -124,13 +128,22 @@ Our research methodology employs a systematic approach to data collection, proce
    - Regular retraining schedule (weekly)
 
 3. **Evaluation Metrics**
-   - Primary metrics:
-     - Mean Absolute Percentage Error (MAPE)
-     - Root Mean Square Error (RMSE)
-   - Secondary metrics:
-     - Overstock reduction percentage
-     - Stockout frequency reduction
-     - Cost savings from weight reduction
+   - **Mean Absolute Percentage Error (MAPE):**
+     - MAPE will be used to measure the accuracy of the model's predictions by comparing the predicted beverage loads to the actual consumption data. A lower MAPE indicates higher accuracy, with a target of achieving predictions within a 10% margin of error.
+
+   - **Root Mean Square Error (RMSE):**
+     - RMSE will provide insight into the model's prediction error magnitude. It is particularly useful for identifying large errors, which can significantly impact inventory planning. The goal is to minimize RMSE to ensure reliable predictions.
+
+   - **Overstock Reduction Percentage:**
+     - This metric will assess the model's effectiveness in reducing excess inventory. By comparing the predicted and actual overstock levels, we aim to achieve at least a 15% reduction in overstock scenarios.
+
+   - **Stockout Frequency Reduction:**
+     - This metric will evaluate the model's ability to prevent stockouts by ensuring sufficient inventory levels. The target is to reduce stockout occurrences by at least 20%, thereby maintaining or improving customer satisfaction.
+
+   - **Cost Savings from Weight Reduction:**
+     - By calculating the fuel savings associated with reduced beverage weight, this metric will quantify the economic impact of the model's predictions. The focus is on demonstrating tangible cost benefits from optimized inventory loads.
+
+These metrics will collectively provide a comprehensive assessment of the model's performance, guiding iterative improvements and validating the approach's effectiveness in real-world scenarios.
 
 ## Implementation Framework
 

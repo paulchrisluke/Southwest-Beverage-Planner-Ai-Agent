@@ -1,18 +1,24 @@
 # Southwest Airlines AI-Driven Beverage Inventory Management
 
-This research project aims to optimize beverage inventory management for Southwest Airlines flights using AI and real-time flight data. The project focuses on US domestic flights and utilizes free, publicly available data sources.
+This research project aims to optimize beverage inventory management for Southwest Airlines flights using AI and real-time flight data. The project focuses on US domestic flights and utilizes the OpenSky Network API.
 
 ## Data Sources
 
-### Flight Data (OpenSky Network)
+### Flight Data (OpenSky Network API)
 - Anonymous access (400 requests/day limit)
 - Filtering for Southwest Airlines (ICAO: SWA)
 - US domestic flights only
+- Data collection methods:
+  - Get flights from time intervals (max 2 hours)
+  - Get flights by specific aircraft (max 30 days history)
+  - Get airport arrivals/departures (max 7 days history)
 - Data points collected:
   - Flight numbers
   - Departure/arrival times
   - Routes
   - Aircraft types
+  - Position data
+  - Altitude and velocity
 
 ### Weather Data (National Weather Service API)
 - Free, unlimited access
@@ -33,13 +39,17 @@ This research project aims to optimize beverage inventory management for Southwe
 ## Data Collection Strategy
 
 ### Daily Batch Processing
-1. Collect SWA flights data within US airspace
+1. Collect SWA flights data within US airspace using OpenSky Network API
+   - Process in 2-hour intervals to comply with API limitations
+   - Track specific aircraft and routes
+   - Gather comprehensive flight state information
 2. Process in 24-hour blocks
 3. Store in local database
 4. Account for 400 requests/day limit
 
 ### Rate Limiting
-- Maximum 400 API calls per day (OpenSky)
+- Maximum 400 API calls per day (OpenSky Network API)
+- State vector updates every 10 seconds for anonymous access
 - Implemented cooldown periods between requests
 - Batch processing during off-peak hours
 
@@ -48,11 +58,11 @@ This research project aims to optimize beverage inventory management for Southwe
 ### Requirements
 ```
 python>=3.8
-requests
-pandas
-numpy
-scikit-learn
-opensky-api
+requests>=2.26.0
+pandas>=1.3.0
+numpy>=1.21.0
+scikit-learn>=0.24.2
+opensky-api>=1.4.0  # OpenSky Network API client
 ```
 
 ### Installation
