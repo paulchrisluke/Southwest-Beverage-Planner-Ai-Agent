@@ -1,61 +1,47 @@
 import requests
 import json
-from datetime import datetime
-import pandas as pd
 from tabulate import tabulate
+import pandas as pd
+import logging
 
-def format_predictions(response_json):
-    """Format the predictions into readable tables by category."""
-    predictions = response_json['predictions']
-    
-    for flight in predictions:
-        flight_num = flight['flight_number']
-        pred = flight['predictions']
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def format_predictions(response_data):
+    """Format predictions into tables by category"""
+    for flight_data in response_data:
+        flight_number = flight_data['flight_number']
+        predictions = flight_data['predictions']
         
-        print(f"\n=== Flight {flight_num} Predictions ===\n")
+        print(f"\nPredictions for Flight {flight_number}:")
+        print("=" * 50)
         
-        # Format each beverage category
-        for category, beverages in pred.items():
+        for category, beverages in predictions.items():
             # Create a DataFrame for this category
-            rows = []
-            for beverage, amount in beverages.items():
-                rows.append({
-                    'Beverage': beverage.replace('_', ' ').title(),
-                    'Servings': amount
-                })
+            df = pd.DataFrame(list(beverages.items()), columns=['Beverage', 'Predicted Amount'])
+            df = df.sort_values('Predicted Amount', ascending=False)
             
-            df = pd.DataFrame(rows)
-            df = df.sort_values('Servings', ascending=False)
-            
-            print(f"\n{category.replace('_', ' ').title()}:")
-            print(tabulate(df, headers='keys', tablefmt='pretty', showindex=False))
-        
-        # Print category totals
-        print("\nCategory Totals:")
-        totals = pd.DataFrame([
-            {'Category': cat.replace('_', ' ').title(), 
-             'Total Servings': sum(beverages.values())}
-            for cat, beverages in pred.items()
-        ])
-        print(tabulate(totals, headers='keys', tablefmt='pretty', showindex=False))
-        print("\n" + "="*50)
+            print(f"\n{category.upper()}:")
+            print(tabulate(df, headers='keys', tablefmt='grid', showindex=False))
+            print(f"Total {category}: {df['Predicted Amount'].sum()}")
 
 def main():
-    # Make the prediction request
-    url = 'http://localhost:8000/predict'
-    files = {'file': open('sample_prediction_data.csv', 'rb')}
-    
     try:
-        response = requests.post(url, files=files)
-        response.raise_for_status()
-        
-        # Format and display predictions
-        format_predictions(response.json())
-        
+        # Make prediction request
+        with open('sample_data.csv', 'rb') as f:
+            files = {'file': ('sample_data.csv', f, 'text/csv')}
+            response = requests.post('http://localhost:8000/predict', files=files)
+            
+            if response.status_code == 200:
+                predictions = response.json()
+                format_predictions(predictions)
+            else:
+                logger.error(f"Error: {response.status_code} - {response.text}")
+                
     except requests.exceptions.RequestException as e:
-        print(f"Error making prediction request: {str(e)}")
+        logger.error(f"Error making prediction request: {str(e)}")
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main() 
