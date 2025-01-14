@@ -1,60 +1,194 @@
-# Southwest Airlines Beverage Inventory Management AI
+# Southwest Airlines AI-Driven Beverage Inventory Management
 
-Research project focused on AI-driven optimization of beverage inventory management for airlines, using historical flight data to predict and optimize beverage loads for individual flights.
+## Overview
+I am developing an AI-driven inventory management system for optimizing beverage stock on Southwest Airlines flights. This project analyzes historical beverage consumption data and provides intelligent restocking recommendations based on route characteristics, seasonal patterns, passenger behavior, and weather conditions.
 
-## Data Sources
+## Key Features
+- **Intelligent Prediction**: Machine learning model that considers:
+  - Route characteristics (business/vacation routes)
+  - Seasonal patterns (summer/winter consumption)
+  - Weather conditions at airports
+  - Holiday and peak travel periods
+  - Historical consumption patterns
 
-This research uses flight tracking data from the OpenSky Network. For required citations and data usage terms, please see [CITATION.md](CITATION.md).
+- **Data Processing**:
+  - OpenSky Network API integration for flight data
+  - Weather data collection and caching
+  - CSV data validation and cleaning
+  - Excel file conversion support
+
+- **Automated Training Pipeline**:
+  - Scheduled model retraining
+  - Performance monitoring
+  - Data validation
+  - Automated backups
+  - Configurable training parameters
 
 ## Project Structure
-
 ```
-.
-├── data/               # Data storage
-│   └── historical/    # Historical flight data
-├── src/               # Source code
-│   ├── config/       # Configuration settings
-│   ├── data_collection/ # Data collection modules
-│   └── models/       # Database models
-├── tests/             # Test files
-└── migrations/        # Database migrations
+Southwest-AI/
+├── config/                 # Configuration files
+│   └── training_config.json
+├── data/
+│   ├── historical/        # Historical flight data
+│   ├── training/         # Training data files
+│   ├── weather/          # Cached weather data
+│   └── consumption/      # Generated consumption data
+├── docs/                 # Documentation
+│   ├── data_format.md
+│   └── excel_conversion.md
+├── logs/                 # Application logs
+├── models/              # Trained models
+├── scripts/             # Utility scripts
+│   └── run_training_service.py
+├── src/
+│   ├── data_processing/
+│   │   ├── validate_csv.py
+│   │   ├── excel_converter.py
+│   │   ├── weather_collector.py
+│   │   └── seasonal_analyzer.py
+│   ├── models/
+│   │   ├── predictor.py
+│   │   ├── retrain.py
+│   │   └── training_pipeline.py
+│   └── api/
+│       └── main.py
+└── tests/               # Unit tests
 ```
 
-## Setup
+## Installation
 
-1. Create a virtual environment:
+1. Clone the repository:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Unix/macOS
+git clone https://github.com/yourusername/Southwest-AI.git
+cd Southwest-AI
 ```
 
 2. Install dependencies:
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
-3. Set up environment variables in `.env`:
-```
-DATABASE_URL=postgresql://localhost:5432/southwest_ai
-OPENSKY_USERNAME=your_username  # Optional
-OPENSKY_PASSWORD=your_password  # Optional
-```
-
-4. Initialize the database:
+3. Set up environment variables:
 ```bash
-createdb southwest_ai
-alembic upgrade head
+cp .env.example .env
+# Edit .env with your API keys
 ```
 
-## Data Collection
+## Usage
 
-The project collects historical flight data from the OpenSky Network for Southwest Airlines flights at major hubs and focus cities. Data is collected in 2-hour chunks and saved incrementally to allow for interruption and resumption.
-
-To start data collection:
+### Data Collection
+1. Generate synthetic data:
 ```bash
-python src/data_collection/collector_daemon.py
+python src/data_processing/beverage_data_generator.py
 ```
+
+2. Convert Excel files:
+```bash
+python src/data_processing/excel_converter.py input.xlsx
+```
+
+### Model Training
+1. One-time training:
+```bash
+python src/models/training_pipeline.py
+```
+
+2. Run training service:
+```bash
+# Foreground mode
+python scripts/run_training_service.py
+
+# Daemon mode
+python scripts/run_training_service.py --daemon
+```
+
+### Making Predictions
+1. Start the API server:
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+2. Upload data and get predictions:
+```bash
+curl -X POST http://localhost:8000/predict -F "file=@flight_data.csv"
+```
+
+## Configuration
+
+### Training Configuration
+Edit `config/training_config.json` to customize:
+- Training schedule
+- Validation thresholds
+- Model parameters
+- Backup settings
+- Notification preferences
+
+Example configuration:
+```json
+{
+    "training_schedule": {
+        "frequency": "daily",
+        "time": "02:00"
+    },
+    "performance_threshold": 0.8,
+    "min_training_samples": 1000
+}
+```
+
+### Data Validation
+The system validates:
+- Flight numbers (must start with SWA)
+- Passenger counts (143 or 175)
+- Duration (0.5 to 8.0 hours)
+- Consumption amounts (per passenger limits)
+- Required data fields
+
+## Model Features
+
+### Base Features
+- Flight duration
+- Passenger count
+- Route type (business/vacation)
+- Time of day
+- Day of week
+
+### Weather Features
+- Temperature
+- Humidity
+- Precipitation
+- Wind speed
+- Adverse weather conditions
+
+### Seasonal Features
+- Season (winter/summer)
+- Holiday periods
+- Peak travel times
+- Special events
+
+## Performance Monitoring
+The system tracks:
+- Model R² score
+- Per-beverage accuracy
+- Prediction errors
+- Training success rate
+- Data quality metrics
+
+## Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
+This project is open source and available under the MIT License.
 
-This project is for research purposes only. Flight data is provided by the OpenSky Network and is subject to their terms of use. 
+## Acknowledgments
+- OpenSky Network for flight data
+- OpenWeatherMap for weather data
+- Southwest Airlines for inspiration
+
+## Contact
+Paul Chris Luke - [Your Email]
+Project Link: [GitHub Repository URL] 
