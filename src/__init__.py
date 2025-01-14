@@ -1,3 +1,3 @@
 """
-Southwest Airlines AI package.
+Southwest Airlines Beverage Inventory Management System
 """ 
