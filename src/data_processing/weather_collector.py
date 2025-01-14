@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Any
 import os
 from dotenv import load_dotenv
 
@@ -35,7 +35,7 @@ class WeatherCollector:
         self.cache_dir = 'data/weather'
         os.makedirs(self.cache_dir, exist_ok=True)
 
-    def get_weather_data(self, airport_code: str, timestamp: int) -> Dict:
+    def get_weather_data(self, airport_code: str, timestamp: int) -> Dict[str, Any]:
         """Get historical weather data for an airport at a specific time."""
         if airport_code not in self.AIRPORT_COORDS:
             logging.warning(f"Airport {airport_code} coordinates not found")
@@ -52,7 +52,6 @@ class WeatherCollector:
             params = {
                 'lat': lat,
                 'lon': lon,
-                'dt': timestamp,
                 'appid': self.api_key,
                 'units': 'imperial'  # Use Fahrenheit for temperature
             }
@@ -72,7 +71,7 @@ class WeatherCollector:
             logging.error(f"Failed to fetch weather data: {str(e)}")
             return self._get_default_weather()
 
-    def _process_weather_data(self, data: Dict) -> Dict:
+    def _process_weather_data(self, data: Dict) -> Dict[str, Any]:
         """Process raw weather API response into useful features."""
         return {
             'temperature': data['main']['temp'],
@@ -96,7 +95,7 @@ class WeatherCollector:
         
         return any(cond in condition for cond in adverse_conditions) or is_extreme_temp
 
-    def _get_default_weather(self) -> Dict:
+    def _get_default_weather(self) -> Dict[str, Any]:
         """Return default weather data when API call fails."""
         return {
             'temperature': 70,  # Moderate temperature
@@ -112,7 +111,7 @@ class WeatherCollector:
         date = datetime.fromtimestamp(timestamp).strftime('%Y%m%d')
         return f"{self.cache_dir}/{airport_code}_{date}.json"
 
-    def _check_cache(self, airport_code: str, timestamp: int) -> Optional[Dict]:
+    def _check_cache(self, airport_code: str, timestamp: int) -> Dict[str, Any]:
         """Check if weather data exists in cache."""
         cache_file = self._cache_key(airport_code, timestamp)
         try:
@@ -122,7 +121,7 @@ class WeatherCollector:
             pass
         return None
 
-    def _cache_weather_data(self, airport_code: str, timestamp: int, data: Dict):
+    def _cache_weather_data(self, airport_code: str, timestamp: int, data: Dict[str, Any]):
         """Cache weather data to file."""
         cache_file = self._cache_key(airport_code, timestamp)
         pd.Series(data).to_json(cache_file)
@@ -133,11 +132,11 @@ def main():
     
     collector = WeatherCollector()
     
-    # Example: Get weather for Atlanta airport
+    # Example: Get weather for Las Vegas airport
     timestamp = int(datetime.now().timestamp())
-    weather = collector.get_weather_data('KATL', timestamp)
+    weather = collector.get_weather_data('KLAS', timestamp)
     
-    logging.info(f"Weather data: {weather}")
+    logging.info(f"Weather data for KLAS: {weather}")
 
 if __name__ == "__main__":
     main() 
