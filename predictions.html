@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Predictions - Southwest Airlines Beverage Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #304C89;
+            --secondary-color: #47B5FF;
+            --accent-color: #DFF6FF;
+            --background-color: #F8F9FA;
+            --text-color: #333333;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+        }
+
+        .navbar-brand,
+        .nav-link {
+            color: white !important;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--accent-color);
+            padding: 1rem;
+        }
+
+        .card-header h5 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .flight-card:hover {
+            transform: translateY(-2px);
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .progress {
+            background-color: var(--background-color);
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+        }
+
+        .badge {
+            padding: 0.5em 0.8em;
+            font-weight: 500;
+        }
+
+        .table th {
+            border-top: none;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .quick-stats h3 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .quick-stats .text-muted {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #predictionChart {
+            min-height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">Southwest Airlines Beverage Predictor</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="predictions.html">Predictions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="upload.html">Upload Data</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="model.html">Model Info</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="docs.html">Documentation</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Select Date</h5>
+                        <select id="dateSelector" class="form-select">
+                            <option value="">Loading dates...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="flightsList">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div id="predictionDetails">
+                    <div class="text-center">
+                        <h4>Select a flight to view predictions</h4>
+                        <p class="text-muted">Choose a date and flight from the left panel to view detailed predictions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <a href="https://github.com/paulchrisluke/Southwest-AI" class="text-decoration-none">
+                <i class="bi bi-github"></i> View on GitHub
+            </a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentChart = null;
+        const API_BASE_URL = 'http://127.0.0.1:8080';
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                if (element.tagName === 'SELECT') {
+                    element.disabled = true;
+                    element.innerHTML = '<option value="">Loading...</option>';
+                } else {
+                    element.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+                }
+            }
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                if (element.tagName === 'SELECT') {
+                    element.disabled = true;
+                    element.innerHTML = `<option value="">${message}</option>`;
+                } else {
+                    element.innerHTML = `<div class="alert alert-danger" role="alert">${message}</div>`;
+                }
+            }
+            console.error(message);
+        }
+
+        function enableSelect(elementId) {
+            const element = document.getElementById(elementId);
+            if (element && element.tagName === 'SELECT') {
+                element.disabled = false;
+            }
+        }
+
+        async function loadDates() {
+            try {
+                showLoading('dateSelector');
+                const response = await fetch(`${API_BASE_URL}/dates`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const dates = await response.json();
+                const dateSelect = document.getElementById('dateSelector');
+                dateSelect.innerHTML = dates.map(date =>
+                    `<option value="${date}">${date}</option>`
+                ).join('');
+                enableSelect('dateSelector');
+
+                // Load flights for the first date
+                if (dates.length > 0) {
+                    loadFlights(dates[0]);
+                }
+            } catch (error) {
+                showError('dateSelector', 'Error loading dates. Please ensure the FastAPI server is running on port 8080.');
+            }
+        }
+
+        async function loadFlights(date) {
+            try {
+                showLoading('flightsList');
+                const response = await fetch(`${API_BASE_URL}/flights?date=${date}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const flights = await response.json();
+                const flightsList = document.getElementById('flightsList');
+                flightsList.innerHTML = flights.map(flight =>
+                    `<div class="card mb-3 flight-card" onclick="loadFlightDetails('${flight.flight_number}', '${date}')">
+                        <div class="card-body">
+                            <h5 class="card-title">${flight.flight_number}</h5>
+                            <p class="card-text">
+                                ${flight.origin} → ${flight.destination}<br>
+                                Departure: ${flight.departure_time}<br>
+                                Passengers: ${flight.passenger_count}
+                            </p>
+                        </div>
+                    </div>`
+                ).join('');
+            } catch (error) {
+                showError('flightsList', 'Error loading flights. Please ensure the FastAPI server is running on port 8080.');
+            }
+        }
+
+        async function loadFlightDetails(flightNumber, date) {
+            try {
+                showLoading('predictionDetails');
+                const response = await fetch(`${API_BASE_URL}/predictions?flight=${flightNumber}&date=${date}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const prediction = await response.json();
+
+                // Update prediction details
+                document.getElementById('predictionDetails').innerHTML = `
+                    <!-- Quick Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">${prediction.total_beverages}</h3>
+                                    <small class="text-muted">Total Beverages</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">${prediction.beverages_per_passenger}</h3>
+                                    <small class="text-muted">Per Passenger</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">${prediction.flight_duration}</h3>
+                                    <small class="text-muted">Flight Duration (hours)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flight Details -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Flight Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Flight:</strong> ${prediction.flight_number}</p>
+                                    <p><strong>Date:</strong> ${date}</p>
+                                    <p><strong>Departure:</strong> ${prediction.departure_time || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>From:</strong> ${prediction.origin || 'N/A'}</p>
+                                    <p><strong>To:</strong> ${prediction.destination || 'N/A'}</p>
+                                    <p><strong>Passengers:</strong> ${prediction.passenger_count || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Predictions Chart -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Predicted Beverage Requirements</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="predictionChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Predictions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Detailed Predictions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Beverage</th>
+                                            <th>Quantity</th>
+                                            <th>Confidence</th>
+                                            <th>Status</th>
+                                            <th>Trend</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Object.entries(prediction.beverage_predictions).map(([beverage, data]) => `
+                                            <tr>
+                                                <td>${beverage}</td>
+                                                <td>${data.quantity}</td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar" role="progressbar" 
+                                                            style="width: ${data.confidence}%;"
+                                                            aria-valuenow="${data.confidence}" 
+                                                            aria-valuemin="0" 
+                                                            aria-valuemax="100">
+                                                            ${data.confidence}%
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-${data.status === 'optimal' ? 'success' : 'danger'}">
+                                                        ${data.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-${data.trend_color}">
+                                                        <i class="bi bi-arrow-${data.trend}"></i>
+                                                        ${data.trend}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // Update chart
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(prediction.beverage_predictions),
+                        datasets: [{
+                            label: 'Predicted Quantity',
+                            data: Object.values(prediction.beverage_predictions).map(p => p.quantity),
+                            backgroundColor: 'rgba(47, 128, 237, 0.5)',
+                            borderColor: 'rgba(47, 128, 237, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Quantity'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                showError('predictionDetails', 'Error loading predictions. Please ensure the FastAPI server is running on port 8080.');
+            }
+        }
+
+        // Load dates when the page loads
+        document.addEventListener('DOMContentLoaded', loadDates);
+
+        // Add event listener for date selection
+        document.getElementById('dateSelector').addEventListener('change', (e) => {
+            loadFlights(e.target.value);
+        });
+    </script>
+</body>
+
+</html>
