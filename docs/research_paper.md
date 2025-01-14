@@ -49,126 +49,172 @@ By combining these elements with modern AI techniques, we aim to transform Mike'
 
 # Methodology:
 
-Our research methodology employs a systematic approach to data collection, processing, and model development, focusing specifically on Southwest Airlines' domestic US flights. The methodology is designed to work within the constraints of publicly available data sources while maintaining scientific rigor.
+Our research methodology employs a systematic, passenger-centric approach to beverage inventory prediction, focusing specifically on Southwest Airlines' domestic US flights. The methodology prioritizes passenger count and flight-specific characteristics while leveraging OpenSky Network data for route validation and capacity verification.
 
 ## Data Collection Framework
 
-### Flight Data Collection
-1. **Source:** The OpenSky Network (https://opensky-network.org)
-   - Coverage: All Southwest Airlines (SWA) domestic US flights at 22 major hubs and focus cities
-   - Collection frequency: Historical data in 2-hour intervals
-   - Data points: Flight numbers, routes, aircraft types, departure/arrival times, state vectors
-   - Access method: OpenSky Network REST API with authenticated access
-   - Data limitations: 
-     - Historical data must be retrieved in intervals smaller than 2 hours
-     - Rate limiting and access restrictions apply
-     - Data is used for research purposes only in accordance with OpenSky Network terms
-     - Citation: See [1] in Sources section
+### Primary Data Collection (Passenger-Centric)
+1. **Flight Manifest Data**
+   - Passenger count per flight
+   - Load factor (percentage of seats filled)
+   - Group booking patterns
+   - Historical consumption patterns per passenger segment
 
-2. **Weather Data Integration**
-   - Source: National Weather Service API
-   - Coverage: All US airports served by Southwest
-   - Data points: Temperature, precipitation, wind conditions
-   - Collection frequency: Hourly updates
+2. **OpenSky Network Integration**
+   - Real-time flight tracking via OpenSky API
+   - Aircraft type verification (for accurate capacity)
+   - Historical load factors for routes
+   - Flight schedule validation
+   - Actual vs. scheduled departure times
+   - Source: OpenSky Network (https://opensky-network.org)
+   - Coverage: All Southwest Airlines (SWA) domestic US flights
+   - Access method: REST API with authenticated access
+   - Data points:
+     * Aircraft registration and type
+     * Actual departure/arrival times
+     * Route verification
+     * Historical patterns
 
-3. **Hybrid Data Integration Framework**
-   1. **Real Beverage Consumption Data**
-      - Support for researcher-provided actual consumption data:
-        - Pre-flight inventory counts
-        - Post-flight remaining inventory
-        - Flight-specific consumption patterns
-        - Beverage type breakdown
-      - Data format: CSV or JSON with standardized schema:
-        ```
-        flight_number,date,departure,arrival,beverage_type,initial_count,final_count
-        ```
+3. **Route-Specific Data**
+   - Flight duration from OpenSky historical data
+   - Business vs. vacation route classification
+   - Historical route performance
+   - Peak vs. off-peak timing
 
-   2. **Synthetic Data Generation**
-      - Used to supplement gaps in real data
-      - Creation of baseline beverage consumption patterns based on:
-        - Flight duration categories (short-haul: <2 hours, medium: 2-4 hours, long-haul: >4 hours)
-        - Time of day (morning, afternoon, evening flights)
-        - Day of week patterns
-        - Seasonal variations
-      - Calibration of synthetic data against any available real data
+### Secondary Data Collection
+1. **Environmental Data**
+   - Basic weather conditions
+   - Seasonal patterns
+   - Special events
 
-   3. **Data Integration Strategy**
-      - Priority given to real consumption data when available
-      - Synthetic data used for:
-        - Routes without real data
-        - Historical gap filling
-        - Future prediction validation
-      - Continuous model retraining as new real data becomes available
-      - Clear flagging of real vs synthetic data in analysis
+## Model Architecture
 
-### Beverage Consumption Assumptions
+### Core Prediction Engine
+1. **Random Forest Regressor**
+   - Optimized for passenger count importance
+   - Parameters:
+     * n_estimators: 5 (focused on clear patterns)
+     * max_depth: 3 (prevent overfitting)
+     * max_features: None (use all features)
+     * random_state: 42 (reproducibility)
 
-To demonstrate our model's potential while awaiting real beverage inventory data, we make the following evidence-based assumptions for beverage consumption patterns:
-
-1. **Base Consumption Rates**
-   - Short flights (<2 hours): 0.5 beverages per passenger
-   - Medium flights (2-4 hours): 1.0 beverages per passenger
-   - Long flights (>4 hours): 1.5 beverages per passenger
-
-2. **Time-Based Modifiers**
-   - Morning flights (6AM-10AM): +20% coffee/tea consumption
-   - Evening flights (6PM-11PM): +15% alcoholic beverage consumption
-   - Red-eye flights (11PM-6AM): -30% overall consumption
-
-3. **Route-Based Modifiers**
-   - Vacation destinations (e.g., LAS, MCO): +25% alcoholic beverages
-   - Business routes (e.g., BWI-MDW): +15% coffee/tea
-   - Weekend flights: +10% overall consumption
-
-4. **Seasonal Adjustments**
-   - Summer months: +20% cold beverages
-   - Winter months: +20% hot beverages
-   - Holiday periods: +15% all beverages
-
-5. **Aircraft Load Assumptions**
-   - Average load factor: 85% (industry standard)
-   - Boeing 737-700: 143 seats
-   - Boeing 737-800: 175 seats
-   - Boeing 737 MAX 8: 175 seats
-
-6. **Beverage Types and Distribution**
-   - **Soft Drinks (30% of total):**
-     - Coca-Cola: 8%
-     - Diet Coke: 7%
-     - Sprite: 5%
-     - Dr Pepper: 5%
-     - Diet Dr Pepper: 5%
+2. **Feature Engineering**
+   - Primary Features (80% weight):
+     * passenger_scaled (passenger_count normalized)
+     * load_factor (passenger_count/max_capacity from OpenSky)
+     * route_type (business/vacation)
+     * flight_duration (from OpenSky historical data)
    
-   - **Hot Beverages (20% of total):**
-     - Regular Coffee: 12%
-     - Decaf Coffee: 3%
-     - Hot Tea: 5%
+   - Secondary Features (20% weight):
+     * time_of_day
+     * day_of_week
+     * basic_weather
+
+### OpenSky Data Integration
+1. **Real-time Updates**
+   - Aircraft capacity verification
+   - Schedule adherence monitoring
+   - Route pattern analysis
+   - Historical load factor trends
+
+2. **Data Processing**
+   - 2-hour interval historical data retrieval
+   - Rate limit management (400 requests/day)
+   - Data validation and cleaning
+   - Integration with passenger manifests
+
+## Feature Engineering
+
+1. **Primary Features (70-80% impact)**
+   - **Passenger-Based Features**:
+     * Passenger count
+     * Load factor (actual vs. capacity)
+     * Group booking patterns
+     * Historical consumption per passenger
+
+   - **Time-Based Features**:
+     * Hour of day (0-23)
+     * Day of week (0-6)
+     * Month (1-12)
+     * Time period categories:
+       - Morning (6-11 AM)
+       - Afternoon (11 AM-4 PM)
+       - Evening (4 PM-9 PM)
+       - Night (9 PM-6 AM)
+
+   - **Route Features**:
+     * Route popularity score
+     * Distance-based categories:
+       - Short-haul (< 500 miles)
+       - Medium-haul (500-1500 miles)
+       - Long-haul (> 1500 miles)
+     * Route type indicators:
+       - Business route
+       - Vacation route
+       - Holiday route
+
+2. **Secondary Features (20-30% impact)**
+   - **Weather Features**:
+     * Origin/destination temperature
+     * Precipitation probability
+     * Seasonal patterns
    
-   - **Juices & Water (35% of total):**
-     - Bottled Water: 20%
-     - Cranberry Apple Juice: 8%
-     - Orange Juice: 7%
-   
-   - **Alcoholic Beverages (15% of total):**
-     - Miller Lite: 4%
-     - Bud Light: 4%
-     - White Wine: 3%
-     - Red Wine: 2%
-     - Premium Spirits: 2%
+   - **Event Features**:
+     * Special events
+     * Holidays
+     * Seasonal promotions
 
-   Each beverage type has specific weight and storage considerations:
-   - Canned beverages: 12 fl oz (355ml), ~0.375 lbs each
-   - Bottled water: 16.9 fl oz (500ml), ~1.1 lbs each
-   - Wine: 187ml bottles, ~0.5 lbs each
-   - Coffee/Tea supplies: Estimated at 0.1 lbs per serving
+## Model Architecture
 
-These assumptions are derived from:
-- Industry standard load factors (IATA Global Passenger Survey)
-- Published airline beverage service guidelines
-- Academic studies on in-flight consumption patterns
-- Southwest Airlines' public fleet information
+1. **Primary Model: Gradient Boosting Decision Trees**
+   - Implementation: LightGBM
+   - Advantages:
+     * Handles non-linear passenger behavior patterns
+     * Captures complex route-time interactions
+     * Efficient with categorical variables
+   - Hyperparameters:
+     * n_estimators: 200
+     * max_depth: 15
+     * min_samples_split: 5
+     * min_samples_leaf: 2
+     * learning_rate: 0.1
 
-We will use these assumptions to generate synthetic beverage consumption data that maintains realistic patterns while demonstrating the model's capability to optimize inventory loads. When real data becomes available, these assumptions can be replaced with actual consumption patterns.
+2. **Feature Processing**
+   - StandardScaler for numeric features
+   - Consistent dtype handling (float64)
+   - Proper initialization and persistence of scaler state
+   - Priority on passenger and route features
+
+3. **Business Rules Integration**
+   - Base predictions on passenger count and route type
+   - Primary adjustments:
+     * Time of day impact (±40%)
+     * Route type impact (±30%)
+     * Flight duration impact (±25%)
+   - Secondary adjustments:
+     * Weather conditions (±10%)
+     * Special events (±15%)
+     * Seasonal factors (±10%)
+
+## Model Training Process
+
+1. **Data Preparation**
+   - Prioritize passenger and route data quality
+   - Feature engineering pipeline with emphasis on primary factors
+   - Missing value handling with focus on critical features
+   - Careful validation of passenger counts and route information
+
+2. **Training Strategy**
+   - Separate models for each beverage type
+   - Cross-validation with time-series split
+   - Regular retraining schedule
+   - Feature importance tracking with emphasis on passenger impact
+
+3. **Prediction Pipeline**
+   - Base predictions from passenger count and route type
+   - Primary adjustments from time and duration factors
+   - Secondary adjustments from environmental factors
+   - Final validation against historical passenger consumption patterns
 
 ## Data Processing Pipeline
 

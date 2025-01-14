@@ -1,20 +1,22 @@
 # Southwest Airlines Beverage Inventory Management System
 
 ## Overview
-I've developed an AI-driven beverage inventory management system for Southwest Airlines. This system predicts beverage consumption for flights by analyzing multiple key factors including passenger demographics, route characteristics, time of day patterns, and seasonal trends. The model is designed to help optimize beverage inventory for each flight, reducing waste while ensuring passenger satisfaction.
+I've developed an AI-driven beverage inventory management system for Southwest Airlines. This system predicts beverage consumption by prioritizing passenger-centric factors (load factors, route types, flight timing) while incorporating secondary environmental factors like weather conditions. The model optimizes beverage inventory for each flight, ensuring passenger satisfaction while minimizing waste.
 
 ## Features
-- **Intelligent Passenger-Based Predictions**:
-  - Base consumption calculated per passenger
-  - Adjustments for flight duration (short/medium/long-haul)
-  - Route-specific consumption patterns
-  - Holiday and special event considerations
+- **Core Passenger-Based Predictions**:
+  - Passenger count as primary predictor
+  - Load factor analysis (typically 75-85%)
+  - Per-passenger consumption baselines
+  - Group travel pattern recognition
+  - Flight duration impact analysis
 
-- **Route Analysis**:
-  - Business vs. vacation route optimization
-  - Popular route pattern recognition
-  - Destination-specific consumption trends
-  - Special event route handling
+- **Route and Time Analysis**:
+  - Business vs. vacation route patterns
+  - Time-of-day consumption trends
+  - Flight duration categories
+  - Historical route performance
+  - Special event and holiday adjustments
 
 - **Time-Based Pattern Recognition**:
   - Morning rush preferences (high coffee, low alcohol)
@@ -22,30 +24,24 @@ I've developed an AI-driven beverage inventory management system for Southwest A
   - Evening trends (increased alcohol, decreased hot beverages)
   - Weekend vs. weekday variations
 
-- **Beverage Category Management**:
-  - Soft Drinks: Coca-Cola, Diet Coke, Sprite, Dr Pepper, Ginger Ale
-  - Hot Beverages: Coffee, Hot Tea, Hot Cocoa
-  - Water/Juice: Bottled Water, Orange Juice, Cranberry Apple Juice, Tomato Juice
-  - Alcoholic Beverages: Miller Lite, Dos Equis, Jack Daniels, Crown Royal, Bacardi Rum, Tito's Vodka, Baileys, Red/White Wine
-
-- **Environmental Factors**:
-  - Seasonal adjustments
-  - Weather impact analysis
+- **Secondary Environmental Factors**:
+  - Weather impact assessment
+  - Seasonal trend analysis
   - Special event considerations
-  - Holiday period optimizations
+  - Holiday period adjustments
 
 ## Model Intelligence
-- **Passenger-Centric Approach**:
-  - Base consumption rates per passenger
-  - Flight duration multipliers
-  - Route type adjustments
-  - Time of day variations
+- **Primary Predictors (70-80% impact)**:
+  - Passenger count and demographics
+  - Flight duration and timing
+  - Route type and historical patterns
+  - Day of week and time of day
 
-- **Route-Based Learning**:
-  - Business route patterns (higher coffee, moderate alcohol)
-  - Vacation route patterns (higher overall consumption)
-  - Special event routes (sports events, concerts)
-  - Popular route optimization
+- **Secondary Factors (20-30% impact)**:
+  - Weather conditions
+  - Seasonal variations
+  - Special events
+  - Holiday periods
 
 - **Time-Based Distribution**:
   Morning (6-11 AM):

@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 import pandas as pd
 import json
 from src.models.beverage_predictor import BeveragePredictor
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -77,6 +78,83 @@ async def predict(file: UploadFile):
     except Exception as e:
         logger.error(f"Error making predictions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload-consumption-data")
+async def upload_consumption_data(file: UploadFile):
+    """Upload historical beverage consumption data"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported")
+    
+    try:
+        # Read CSV file
+        df = pd.read_csv(file.file)
+        
+        # Validate required columns
+        required_columns = [
+            'flight_number', 'date', 'departure_time',
+            'origin_airport', 'destination_airport',
+            'passenger_count', 'actual_beverages'
+        ]
+        
+        missing_cols = [col for col in required_columns if col not in df.columns]
+        if missing_cols:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing_cols)}"
+            )
+        
+        # Transform and save data
+        transformed_data = transform_consumption_data(df)
+        
+        # Save to data directory with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = f"data/historical/consumption/{timestamp}_consumption.csv"
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        transformed_data.to_csv(output_path, index=False)
+        
+        return JSONResponse(content={
+            "message": "Data uploaded and transformed successfully",
+            "rows_processed": len(df),
+            "output_file": output_path
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing consumption data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def transform_consumption_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Transform raw consumption data into model-ready format"""
+    # Convert date and time to timestamp
+    df['timestamp'] = pd.to_datetime(df['date'] + ' ' + df['departure_time'])
+    df['timestamp'] = df['timestamp'].astype('int64') // 10**9  # Convert to Unix timestamp
+    
+    # Parse actual_beverages JSON column if it's a string
+    def parse_beverages(beverages):
+        if isinstance(beverages, str):
+            return json.loads(beverages)
+        return beverages  # Already a dict
+    
+    df['actual_beverages'] = df['actual_beverages'].apply(parse_beverages)
+    
+    # Expand beverages into separate columns
+    beverage_columns = {}
+    for idx, row in df.iterrows():
+        for category, beverages in row['actual_beverages'].items():
+            for beverage, count in beverages.items():
+                if beverage not in beverage_columns:
+                    beverage_columns[beverage] = [0] * len(df)
+                beverage_columns[beverage][idx] = count
+    
+    # Create expanded DataFrame
+    beverages_df = pd.DataFrame(beverage_columns)
+    
+    # Combine with original features
+    result_df = pd.concat([
+        df.drop(['date', 'departure_time', 'actual_beverages'], axis=1),
+        beverages_df
+    ], axis=1)
+    
+    return result_df
 
 @app.get("/model-info")
 async def get_model_info():
