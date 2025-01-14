@@ -1,0 +1,13 @@
+flight_number,timestamp,duration_hours,passenger_count,is_business_route,is_vacation_route,is_holiday,beverage_type,consumption_amount
+SWA1234,1706745600,2.5,143,1,0,0,soft_drinks,120
+SWA1234,1706745600,2.5,143,1,0,0,hot_beverages,45
+SWA1234,1706745600,2.5,143,1,0,0,water_juice,85
+SWA1234,1706745600,2.5,143,1,0,0,alcoholic,25
+SWA5678,1706832000,3.75,175,0,1,0,soft_drinks,180
+SWA5678,1706832000,3.75,175,0,1,0,hot_beverages,55
+SWA5678,1706832000,3.75,175,0,1,0,water_juice,120
+SWA5678,1706832000,3.75,175,0,1,0,alcoholic,40
+SWA9012,1706918400,1.5,143,0,0,1,soft_drinks,95
+SWA9012,1706918400,1.5,143,0,0,1,hot_beverages,35
+SWA9012,1706918400,1.5,143,0,0,1,water_juice,70
+SWA9012,1706918400,1.5,143,0,0,1,alcoholic,15 

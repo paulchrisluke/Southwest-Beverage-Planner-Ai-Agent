@@ -1,0 +1,4 @@
+flight_number,timestamp,duration_hours,passenger_count,is_business_route,is_vacation_route,is_holiday,origin_airport,destination_airport
+SWA1234,1706745600,2.5,143,1,0,0,KMDW,KLAS
+SWA5678,1706832000,3.75,175,0,1,0,KLAS,KMCO
+SWA9012,1706918400,1.5,143,0,0,1,KBWI,KATL 

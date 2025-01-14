@@ -1,0 +1,5 @@
+flight_number,date,departure_time,origin_airport,destination_airport,passenger_count,actual_beverages
+WN1234,2024-01-15,10:30,LAS,JFK,175,"{""soft_drinks"":{""coca_cola"":45,""sprite"":30},""hot_beverages"":{""coffee"":60}}"
+WN1235,2024-01-15,14:45,LAS,JFK,150,"{""soft_drinks"":{""coca_cola"":35,""sprite"":25},""alcoholic"":{""miller_lite"":20,""red_wine"":15}}"
+WN1236,2024-01-15,18:15,LAS,JFK,165,"{""soft_drinks"":{""coca_cola"":40,""sprite"":28},""alcoholic"":{""miller_lite"":35,""titos_vodka"":25}}"
+WN1237,2024-01-15,08:00,JFK,LAS,180,"{""hot_beverages"":{""coffee"":80,""hot_tea"":20},""water_juice"":{""bottled_water"":45}}" 
