@@ -261,7 +261,7 @@
                     loadFlights(dates[0]);
                 }
             } catch (error) {
-                showError('dateSelector', 'Error loading dates. Please ensure the FastAPI server is running on port 8080.');
+                showError('dateSelector', 'Error loading dates. Please check your connection and try again.');
             }
         }
 
@@ -283,7 +283,7 @@
                     </div>`
                 ).join('');
             } catch (error) {
-                showError('flightsList', 'Error loading flights. Please ensure the FastAPI server is running on port 8080.');
+                showError('flightsList', 'Error loading flights. Please check your connection and try again.');
             }
         }
 
@@ -291,6 +291,9 @@
             try {
                 showLoading('predictionDetails');
                 const prediction = await fetchPredictions(flightNumber);
+                if (!prediction) {
+                    throw new Error('No prediction data available');
+                }
 
                 // Update prediction details
                 document.getElementById('predictionDetails').innerHTML = `
@@ -443,7 +446,7 @@
                     }
                 });
             } catch (error) {
-                showError('predictionDetails', 'Error loading predictions. Please ensure the FastAPI server is running on port 8080.');
+                showError('predictionDetails', 'Error loading predictions. Please check your connection and try again.');
             }
         }
 
