@@ -33,53 +33,53 @@ jobs:
       - name: Generate static API responses
         run: |
           mkdir -p _site/api
-          python -c "
-import json
-import os
-from datetime import datetime
-from src.models.predictor import BeveragePredictor
+          python -c '
+          import json
+          import os
+          from datetime import datetime
+          from src.models.predictor import BeveragePredictor
 
-# Initialize predictor
-predictor = BeveragePredictor()
+          # Initialize predictor
+          predictor = BeveragePredictor()
 
-# Get all historical data files
-data_dir = 'data/historical'
-all_dates = set()
-flights_by_date = {}
-predictions = {}
+          # Get all historical data files
+          data_dir = "data/historical"
+          all_dates = set()
+          flights_by_date = {}
+          predictions = {}
 
-for file in os.listdir(data_dir):
-    if file.endswith('.json'):
-        with open(os.path.join(data_dir, file)) as f:
-            data = json.load(f)
-            for flight in data['flights']:
-                date = datetime.fromisoformat(flight['departure_time']).strftime('%Y-%m-%d')
-                all_dates.add(date)
-                
-                if date not in flights_by_date:
-                    flights_by_date[date] = []
-                flights_by_date[date].append(flight)
-                
-                # Generate predictions for each flight
-                flight_id = flight['flight_number']
-                predictions[flight_id] = predictor.predict(flight)
+          for file in os.listdir(data_dir):
+              if file.endswith(".json"):
+                  with open(os.path.join(data_dir, file)) as f:
+                      data = json.load(f)
+                      for flight in data["flights"]:
+                          date = datetime.fromisoformat(flight["departure_time"]).strftime("%Y-%m-%d")
+                          all_dates.add(date)
+                          
+                          if date not in flights_by_date:
+                              flights_by_date[date] = []
+                          flights_by_date[date].append(flight)
+                          
+                          # Generate predictions for each flight
+                          flight_id = flight["flight_number"]
+                          predictions[flight_id] = predictor.predict(flight)
 
-# Write dates endpoint
-with open('_site/api/dates.json', 'w') as f:
-    json.dump({'dates': sorted(list(all_dates))}, f)
+          # Write dates endpoint
+          with open("_site/api/dates.json", "w") as f:
+              json.dump({"dates": sorted(list(all_dates))}, f)
 
-# Write flights endpoints
-os.makedirs('_site/api/flights', exist_ok=True)
-for date, flights in flights_by_date.items():
-    with open(f'_site/api/flights/{date}.json', 'w') as f:
-        json.dump({'flights': flights}, f)
+          # Write flights endpoints
+          os.makedirs("_site/api/flights", exist_ok=True)
+          for date, flights in flights_by_date.items():
+              with open(f"_site/api/flights/{date}.json", "w") as f:
+                  json.dump({"flights": flights}, f)
 
-# Write predictions endpoints
-os.makedirs('_site/api/predictions', exist_ok=True)
-for flight_id, prediction in predictions.items():
-    with open(f'_site/api/predictions/{flight_id}.json', 'w') as f:
-        json.dump(prediction, f)
-          "
+          # Write predictions endpoints
+          os.makedirs("_site/api/predictions", exist_ok=True)
+          for flight_id, prediction in predictions.items():
+              with open(f"_site/api/predictions/{flight_id}.json", "w") as f:
+                  json.dump(prediction, f)
+          '
           
       - name: Copy static files
         run: |
