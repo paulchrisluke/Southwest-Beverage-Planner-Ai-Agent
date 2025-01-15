@@ -216,33 +216,36 @@
 
         async function fetchDates() {
             try {
-                const response = await fetch('api/dates.json');
+                const response = await fetch('/api/dates.json');
+                if (!response.ok) throw new Error('Failed to load dates');
                 const data = await response.json();
-                return data.dates;
+                return data;
             } catch (error) {
-                console.error('Error fetching dates:', error);
-                return [];
+                console.error('Error loading dates:', error);
+                throw new Error('Could not load available dates. Please try again later.');
             }
         }
 
         async function fetchFlights(date) {
             try {
-                const response = await fetch(`api/flights/${date}.json`);
+                const response = await fetch(`/api/flights/${date}.json`);
+                if (!response.ok) throw new Error('Failed to load flights');
                 const data = await response.json();
                 return data.flights;
             } catch (error) {
-                console.error('Error fetching flights:', error);
-                return [];
+                console.error('Error loading flights:', error);
+                throw new Error('Could not load flights for the selected date. Please try again later.');
             }
         }
 
-        async function fetchPredictions(flightId) {
+        async function fetchPredictions(flightNumber) {
             try {
-                const response = await fetch(`api/predictions/${flightId}.json`);
+                const response = await fetch(`/api/predictions/${flightNumber}.json`);
+                if (!response.ok) throw new Error('Failed to load predictions');
                 return await response.json();
             } catch (error) {
-                console.error('Error fetching predictions:', error);
-                return null;
+                console.error('Error loading predictions:', error);
+                throw new Error('Could not load predictions for this flight. Please try again later.');
             }
         }
 
@@ -251,14 +254,14 @@
                 showLoading('dateSelector');
                 const dates = await fetchDates();
                 const dateSelect = document.getElementById('dateSelector');
-                dateSelect.innerHTML = dates.map(date =>
+                dateSelect.innerHTML = dates.dates.map(date =>
                     `<option value="${date}">${date}</option>`
                 ).join('');
                 enableSelect('dateSelector');
 
                 // Load flights for the first date
-                if (dates.length > 0) {
-                    loadFlights(dates[0]);
+                if (dates.dates.length > 0) {
+                    loadFlights(dates.dates[0]);
                 }
             } catch (error) {
                 showError('dateSelector', 'Error loading dates. Please check your connection and try again.');
@@ -363,7 +366,7 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table">
+                                <table class="table table-hover">
                                     <thead>
                                         <tr>
                                             <th>Beverage</th>
@@ -379,24 +382,24 @@
                                                 <td>${beverage}</td>
                                                 <td>${data.quantity}</td>
                                                 <td>
-                                                    <div class="progress" style="height: 20px;">
+                                                    <div class="progress">
                                                         <div class="progress-bar" role="progressbar" 
-                                                            style="width: ${data.confidence}%;"
-                                                            aria-valuenow="${data.confidence}" 
-                                                            aria-valuemin="0" 
-                                                            aria-valuemax="100">
+                                                             style="width: ${data.confidence}%" 
+                                                             aria-valuenow="${data.confidence}" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">
                                                             ${data.confidence}%
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-${data.status === 'optimal' ? 'success' : 'danger'}">
+                                                    <span class="badge bg-${data.status === 'optimal' ? 'success' : 'warning'}">
                                                         ${data.status}
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-${data.trend_color}">
-                                                        <i class="bi bi-arrow-${data.trend}"></i>
+                                                        <i class="bi bi-arrow-${data.trend === 'stable' ? 'right' : data.trend}"></i>
                                                         ${data.trend}
                                                     </span>
                                                 </td>
