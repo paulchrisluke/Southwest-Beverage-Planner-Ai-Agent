@@ -54,10 +54,10 @@ class BeveragePredictor:
         
         return df[self.feature_columns].values
 
-    def train(self, flight_data: pd.DataFrame, consumption_data: pd.DataFrame):
+    def train(self, flight_data: pd.DataFrame, consumption_data: np.ndarray):
         """Train the model on historical data."""
         X = self._prepare_features(flight_data)
-        y = consumption_data.values
+        y = consumption_data  # Already a numpy array
         
         # Scale features
         X_scaled = self.scaler.fit_transform(X)
