@@ -32,6 +32,13 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
+      - name: Copy static files
+        run: |
+          cp *.html _site/
+          cp -r css/ _site/css/
+          cp -r js/ _site/js/
+          cp -r images/ _site/images/ || true
+        
       - name: Generate static API responses
         run: |
           mkdir -p _site/api
@@ -290,14 +297,6 @@ jobs:
               with open(f"_site/api/predictions/{flight_id}.json", "w") as f:
                   json.dump(prediction, f)
           '
-          
-      - name: Copy static files
-        run: |
-          cp -r *.html _site/
-          cp -r css _site/ || true
-          cp -r js _site/ || true
-          cp -r images _site/ || true
-          cp -r docs _site/ || true
           
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

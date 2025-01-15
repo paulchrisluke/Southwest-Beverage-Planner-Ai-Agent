@@ -216,10 +216,9 @@
 
         async function fetchDates() {
             try {
-                const response = await fetch('./api/dates.json');
+                const response = await fetch('/Southwest-AI/api/dates.json');
                 if (!response.ok) throw new Error('Failed to load dates');
-                const data = await response.json();
-                return data;
+                return await response.json();
             } catch (error) {
                 console.error('Error loading dates:', error);
                 throw new Error('Could not load available dates. Please try again later.');
@@ -228,7 +227,7 @@
 
         async function fetchFlights(date) {
             try {
-                const response = await fetch(`./api/flights/${date}.json`);
+                const response = await fetch(`/Southwest-AI/api/flights/${date}.json`);
                 if (!response.ok) throw new Error('Failed to load flights');
                 const data = await response.json();
                 return data.flights;
@@ -240,7 +239,7 @@
 
         async function fetchPredictions(flightNumber) {
             try {
-                const response = await fetch(`./api/predictions/${flightNumber}.json`);
+                const response = await fetch(`/Southwest-AI/api/predictions/${flightNumber}.json`);
                 if (!response.ok) throw new Error('Failed to load predictions');
                 return await response.json();
             } catch (error) {
