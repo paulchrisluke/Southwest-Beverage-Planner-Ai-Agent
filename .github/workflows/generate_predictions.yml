@@ -27,16 +27,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: Generate predictions
+      - name: Generate static API files
         run: |
           # Create necessary directories
           mkdir -p _site/api/predictions
+          mkdir -p _site/api/flights
           
           python -c "
           import json
           import os
           import pandas as pd
           from datetime import datetime
+          from collections import defaultdict
           from src.models.predictor import BeveragePredictor
           from src.utils.route_utils import calculate_flight_duration
           
@@ -45,7 +47,13 @@ jobs:
           
           # Process all flight data files
           data_dir = 'data/historical'
-          predictions_dir = '_site/api/predictions'
+          api_dir = '_site/api'
+          predictions_dir = os.path.join(api_dir, 'predictions')
+          flights_dir = os.path.join(api_dir, 'flights')
+          
+          # Track all dates and flights by date
+          all_dates = set()
+          flights_by_date = defaultdict(list)
           
           for file in os.listdir(data_dir):
               if file.endswith('_flights.json'):
@@ -59,6 +67,22 @@ jobs:
                           destination = flight['estArrivalAirport']
                           timestamp = flight['firstSeen']
                           departure_time = datetime.fromtimestamp(timestamp).isoformat()
+                          date = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+                          
+                          # Add to dates set
+                          all_dates.add(date)
+                          
+                          # Create flight object
+                          flight_obj = {
+                              'flight_number': flight_number,
+                              'departure_time': departure_time,
+                              'origin': origin,
+                              'destination': destination,
+                              'passenger_count': 150  # Default for now
+                          }
+                          
+                          # Add to flights by date
+                          flights_by_date[date].append(flight_obj)
                           
                           # Create prediction input
                           flight_data = pd.DataFrame([{
@@ -102,6 +126,17 @@ jobs:
                           prediction_file = os.path.join(predictions_dir, f'{flight_number}.json')
                           with open(prediction_file, 'w') as f:
                               json.dump(prediction_data, f, indent=2)
+                              
+          # Save dates.json
+          dates_file = os.path.join(api_dir, 'dates.json')
+          with open(dates_file, 'w') as f:
+              json.dump({'dates': sorted(list(all_dates))}, f, indent=2)
+              
+          # Save flight data by date
+          for date, flights in flights_by_date.items():
+              flight_file = os.path.join(flights_dir, f'{date}.json')
+              with open(flight_file, 'w') as f:
+                  json.dump({'flights': sorted(flights, key=lambda x: x['departure_time'])}, f, indent=2)
           "
           
       - name: Deploy to GitHub Pages
