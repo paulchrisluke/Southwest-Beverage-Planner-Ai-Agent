@@ -95,11 +95,6 @@ git clone https://github.com/paulchrisluke/Southwest-AI.git
 cd Southwest-AI
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
 
 3. Install dependencies:
 ```bash
@@ -110,6 +105,8 @@ pip install -r requirements.txt
 ```bash
 # Create .env file with:
 OPENWEATHER_API_KEY=your_api_key_here
+OPENSKY_PASSWORD=
+OPENWEATHER_API_KEY=
 ```
 
 ## Usage
@@ -122,6 +119,7 @@ python train_initial_model.py
 ### Starting the Server
 ```bash
 python app.py
+uvicorn app:app --reload
 ```
 
 ### Making Predictions
