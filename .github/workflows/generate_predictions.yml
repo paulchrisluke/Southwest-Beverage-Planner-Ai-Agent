@@ -1,0 +1,112 @@
+name: Generate Static Predictions
+
+on:
+  # Run after new flight data is collected
+  workflow_run:
+    workflows: ["Daily Flight Data Collection"]
+    types:
+      - completed
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Generate predictions
+        run: |
+          # Create necessary directories
+          mkdir -p _site/api/predictions
+          
+          python -c "
+          import json
+          import os
+          import pandas as pd
+          from datetime import datetime
+          from src.models.predictor import BeveragePredictor
+          from src.utils.route_utils import calculate_flight_duration
+          
+          # Initialize predictor with saved model
+          predictor = BeveragePredictor()
+          
+          # Process all flight data files
+          data_dir = 'data/historical'
+          predictions_dir = '_site/api/predictions'
+          
+          for file in os.listdir(data_dir):
+              if file.endswith('_flights.json'):
+                  with open(os.path.join(data_dir, file)) as f:
+                      flights = json.load(f)
+                      
+                      for flight in flights:
+                          # Extract flight details
+                          flight_number = flight['callsign'].replace('SWA', '')
+                          origin = flight['estDepartureAirport']
+                          destination = flight['estArrivalAirport']
+                          timestamp = flight['firstSeen']
+                          departure_time = datetime.fromtimestamp(timestamp).isoformat()
+                          
+                          # Create prediction input
+                          flight_data = pd.DataFrame([{
+                              'flight_number': flight_number,
+                              'timestamp': timestamp,
+                              'duration_hours': calculate_flight_duration(origin, destination),
+                              'passenger_count': 150,  # Default for now
+                              'origin_airport': origin,
+                              'destination_airport': destination
+                          }])
+                          
+                          # Generate predictions
+                          predictions = predictor.predict(flight_data)
+                          
+                          # Format response
+                          total_beverages = sum(predictions.values())
+                          beverages_per_passenger = round(total_beverages / 150, 1)
+                          
+                          prediction_data = {
+                              'flight_number': flight_number,
+                              'departure_time': departure_time,
+                              'origin': origin,
+                              'destination': destination,
+                              'passenger_count': 150,
+                              'total_beverages': total_beverages,
+                              'beverages_per_passenger': beverages_per_passenger,
+                              'flight_duration': calculate_flight_duration(origin, destination),
+                              'beverage_predictions': {
+                                  name: {
+                                      'quantity': int(quantity),
+                                      'confidence': min(95, max(70, 85 + quantity/10)),
+                                      'status': 'optimal' if quantity > 0 else 'critical',
+                                      'trend': 'up' if quantity > 100 else 'down' if quantity < 50 else 'stable',
+                                      'trend_color': 'success' if quantity > 100 else 'danger' if quantity < 50 else 'secondary'
+                                  }
+                                  for name, quantity in predictions.items()
+                              }
+                          }
+                          
+                          # Save prediction to file
+                          prediction_file = os.path.join(predictions_dir, f'{flight_number}.json')
+                          with open(prediction_file, 'w') as f:
+                              json.dump(prediction_data, f, indent=2)
+          "
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          keep_files: true  # Keep other static files 
