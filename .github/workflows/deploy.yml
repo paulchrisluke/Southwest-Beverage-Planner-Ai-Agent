@@ -38,11 +38,47 @@ jobs:
           python -c '
           import json
           import os
+          import pandas as pd
+          import numpy as np
           from datetime import datetime
+          import logging
           from src.models.predictor import BeveragePredictor
 
-          # Initialize predictor
+          # Setup logging
+          logging.basicConfig(level=logging.INFO)
+
+          # Business and vacation route pairs
+          BUSINESS_ROUTES = {
+              ("KLAS", "KLAX"), ("KLAX", "KLAS"),
+              ("KSFO", "KLAX"), ("KLAX", "KSFO"),
+              ("KDFW", "KHOU"), ("KHOU", "KDFW")
+          }
+          
+          VACATION_ROUTES = {
+              ("KMCO", "KLAS"), ("KLAS", "KMCO"),
+              ("KLAS", "KMIA"), ("KMIA", "KLAS"),
+              ("KLAS", "KHNL"), ("KHNL", "KLAS")
+          }
+
+          def calculate_flight_duration(origin, destination):
+              """Estimate flight duration based on airport pairs."""
+              # Could enhance with actual distance calculations
+              if (origin, destination) in {
+                  ("KLAS", "KLAX"), ("KLAX", "KLAS"),
+                  ("KSFO", "KLAX"), ("KLAX", "KSFO")
+              }:
+                  return 1.5  # Short haul
+              elif (origin, destination) in {
+                  ("KLAS", "KORD"), ("KORD", "KLAS"),
+                  ("KLAS", "KJFK"), ("KJFK", "KLAS")
+              }:
+                  return 4.5  # Long haul
+              else:
+                  return 2.5  # Medium haul
+
+          # Initialize predictor with saved model
           predictor = BeveragePredictor()
+          predictor = predictor.load_model("models/beverage_predictor.joblib")
 
           # Get all historical data files
           data_dir = "data/historical"
@@ -57,25 +93,79 @@ jobs:
                       for flight in flights:  # flights is a list of flight objects
                           # Extract flight details
                           flight_number = flight["callsign"].replace("SWA", "")  # Remove SWA prefix
-                          departure_time = datetime.fromtimestamp(flight["firstSeen"]).isoformat()
-                          date = datetime.fromtimestamp(flight["firstSeen"]).strftime("%Y-%m-%d")
+                          timestamp = flight["firstSeen"]
+                          date = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
+                          origin = flight["estDepartureAirport"]
+                          destination = flight["estArrivalAirport"]
                           
-                          # Create a standardized flight object
+                          # Calculate flight duration
+                          duration_hours = calculate_flight_duration(origin, destination)
+                          
+                          # Determine route type
+                          is_business = (origin, destination) in BUSINESS_ROUTES
+                          is_vacation = (origin, destination) in VACATION_ROUTES
+                          
+                          # Create a standardized flight object for API
                           flight_obj = {
                               "flight_number": flight_number,
-                              "departure_time": departure_time,
-                              "origin": flight["estDepartureAirport"],
-                              "destination": flight["estArrivalAirport"],
-                              "passenger_count": 150  # Default for now, replace with actual data if available
+                              "departure_time": datetime.fromtimestamp(timestamp).isoformat(),
+                              "origin": origin,
+                              "destination": destination,
+                              "passenger_count": 150  # Default for now
                           }
+                          
+                          # Create DataFrame for prediction
+                          flight_data = pd.DataFrame([{
+                              "timestamp": timestamp,
+                              "duration_hours": duration_hours,
+                              "passenger_count": 150,  # Default for now
+                              "is_holiday": False,  # Could enhance with holiday detection
+                              "is_business_route": is_business,
+                              "is_vacation_route": is_vacation
+                          }])
                           
                           all_dates.add(date)
                           if date not in flights_by_date:
                               flights_by_date[date] = []
                           flights_by_date[date].append(flight_obj)
                           
-                          # Generate predictions for each flight
-                          predictions[flight_number] = predictor.predict(flight_obj)
+                          try:
+                              # Generate predictions for each flight
+                              pred = predictor.predict(flight_data)
+                              total_beverages = int(np.clip(pred[0], 50, 500))  # Reasonable range
+                              beverages_per_passenger = round(total_beverages / 150, 2)
+                              
+                              # Determine status based on beverages per passenger
+                              if beverages_per_passenger < 1:
+                                  status = "low"
+                                  trend = "decreasing"
+                                  trend_color = "danger"
+                              elif beverages_per_passenger > 3:
+                                  status = "high"
+                                  trend = "increasing"
+                                  trend_color = "warning"
+                              else:
+                                  status = "optimal"
+                                  trend = "stable"
+                                  trend_color = "success"
+                              
+                              predictions[flight_number] = {
+                                  "flight_number": flight_number,
+                                  "departure_time": flight_obj["departure_time"],
+                                  "origin": origin,
+                                  "destination": destination,
+                                  "passenger_count": flight_obj["passenger_count"],
+                                  "total_beverages": total_beverages,
+                                  "beverages_per_passenger": beverages_per_passenger,
+                                  "flight_duration": duration_hours,
+                                  "confidence": 0.85,
+                                  "status": status,
+                                  "trend": trend,
+                                  "trend_color": trend_color
+                              }
+                          except Exception as e:
+                              logging.error(f"Error predicting for flight {flight_number}: {str(e)}")
+                              continue
 
           # Write dates endpoint
           with open("_site/api/dates.json", "w") as f:
