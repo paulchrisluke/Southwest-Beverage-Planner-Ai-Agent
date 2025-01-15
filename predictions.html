@@ -216,7 +216,7 @@
 
         async function fetchDates() {
             try {
-                const response = await fetch('/api/dates.json');
+                const response = await fetch('./api/dates.json');
                 if (!response.ok) throw new Error('Failed to load dates');
                 const data = await response.json();
                 return data;
@@ -228,7 +228,7 @@
 
         async function fetchFlights(date) {
             try {
-                const response = await fetch(`/api/flights/${date}.json`);
+                const response = await fetch(`./api/flights/${date}.json`);
                 if (!response.ok) throw new Error('Failed to load flights');
                 const data = await response.json();
                 return data.flights;
@@ -240,7 +240,7 @@
 
         async function fetchPredictions(flightNumber) {
             try {
-                const response = await fetch(`/api/predictions/${flightNumber}.json`);
+                const response = await fetch(`./api/predictions/${flightNumber}.json`);
                 if (!response.ok) throw new Error('Failed to load predictions');
                 return await response.json();
             } catch (error) {

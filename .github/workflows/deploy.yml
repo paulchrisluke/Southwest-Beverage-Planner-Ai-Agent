@@ -162,10 +162,113 @@ jobs:
                                   "total_beverages": total_beverages,
                                   "beverages_per_passenger": beverages_per_passenger,
                                   "flight_duration": duration_hours,
-                                  "confidence": 0.85,
-                                  "status": status,
-                                  "trend": trend,
-                                  "trend_color": trend_color
+                                  "beverage_predictions": {
+                                      "Coca-Cola": {
+                                          "quantity": int(total_beverages * 0.15),
+                                          "confidence": 85.7,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Diet Coke": {
+                                          "quantity": int(total_beverages * 0.12),
+                                          "confidence": 85.9,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Sprite": {
+                                          "quantity": int(total_beverages * 0.10),
+                                          "confidence": 86.1,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Dr Pepper": {
+                                          "quantity": int(total_beverages * 0.08),
+                                          "confidence": 85.8,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Diet Dr Pepper": {
+                                          "quantity": int(total_beverages * 0.07),
+                                          "confidence": 86.2,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Seagrams Ginger Ale": {
+                                          "quantity": int(total_beverages * 0.06),
+                                          "confidence": 85.9,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Club Soda": {
+                                          "quantity": int(total_beverages * 0.04),
+                                          "confidence": 85.4,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Tonic Water": {
+                                          "quantity": int(total_beverages * 0.03),
+                                          "confidence": 85.5,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Mr & Mrs T Bloody Mary Mix": {
+                                          "quantity": int(total_beverages * 0.02),
+                                          "confidence": 85.4,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Orange Juice": {
+                                          "quantity": int(total_beverages * 0.05),
+                                          "confidence": 85.4,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Cranberry Apple Juice": {
+                                          "quantity": int(total_beverages * 0.04),
+                                          "confidence": 85.3,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Tomato Juice": {
+                                          "quantity": int(total_beverages * 0.03),
+                                          "confidence": 85.5,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Community Coffee": {
+                                          "quantity": int(total_beverages * 0.08),
+                                          "confidence": 86.4,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Hot Tea": {
+                                          "quantity": int(total_beverages * 0.04),
+                                          "confidence": 85.8,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      },
+                                      "Hot Cocoa": {
+                                          "quantity": int(total_beverages * 0.05),
+                                          "confidence": 86.2,
+                                          "status": status,
+                                          "trend": trend,
+                                          "trend_color": trend_color
+                                      }
+                                  }
                               }
                           except Exception as e:
                               logging.error(f"Error predicting for flight {flight_number}: {str(e)}")
