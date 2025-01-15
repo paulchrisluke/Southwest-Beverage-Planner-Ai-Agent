@@ -1,23 +1,42 @@
-name: Monthly Flight Data Collection
+name: Daily Flight Data Collection
 
 on:
   schedule:
-    # Run on the 1st and 15th of each month
-    - cron: '0 0 1,15 * *'
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
   workflow_dispatch:  # Allow manual triggers
     inputs:
-      month:
-        description: 'Month to collect (1-12)'
-        required: false
-        type: number
-      airport:
-        description: 'Airport code (e.g., KLAS)'
+      hub:
+        description: 'Specific hub to collect (e.g., KLAS)'
         required: false
         type: string
 
 jobs:
-  collect:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      hubs: ${{ steps.set-hubs.outputs.hubs }}
+    steps:
+      - name: Set hubs to process
+        id: set-hubs
+        run: |
+          if [ "${{ github.event.inputs.hub }}" != "" ]; then
+            echo "hubs=[${{ github.event.inputs.hub }}]" >> $GITHUB_OUTPUT
+          else
+            # List of SWA hubs - keep each hub in its own job
+            echo 'hubs=["KLAS", "KPHX", "KDFW", "KHOU", "KBWI", "KMCI", "KOAK", "KMDW", "KDEN"]' >> $GITHUB_OUTPUT
+          fi
+
+  collect:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        hub: ${{fromJson(needs.prepare.outputs.hubs)}}
+      # Allow other jobs to continue if one fails
+      fail-fast: false
+      # Limit concurrent jobs to avoid API rate limits
+      max-parallel: 3
     
     steps:
       - name: Checkout repository
@@ -40,59 +59,32 @@ jobs:
           echo "OPENSKY_USERNAME=${{ secrets.OPENSKY_USERNAME }}" >> .env
           echo "OPENSKY_PASSWORD=${{ secrets.OPENSKY_PASSWORD }}" >> .env
           echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" >> .env
-          echo "REQUEST_COOLDOWN=2" >> .env
+          echo "REQUEST_COOLDOWN=5" >> .env  # Increased cooldown for better rate limit handling
           echo "MAX_RETRIES=3" >> .env
           echo "ENVIRONMENT=production" >> .env
           echo "DEBUG=False" >> .env
-          
-      - name: Determine collection parameters
-        id: params
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.month }}" ]; then
-            echo "month=${{ github.event.inputs.month }}" >> $GITHUB_OUTPUT
-          else
-            echo "month=$(date +%-m)" >> $GITHUB_OUTPUT
-          fi
-          
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.airport }}" ]; then
-            echo "airport=${{ github.event.inputs.airport }}" >> $GITHUB_OUTPUT
-            echo "single_airport=true" >> $GITHUB_OUTPUT
-          else
-            echo "single_airport=false" >> $GITHUB_OUTPUT
-          fi
           
       - name: Run data collection
         env:
           OPENSKY_USERNAME: ${{ secrets.OPENSKY_USERNAME }}
           OPENSKY_PASSWORD: ${{ secrets.OPENSKY_PASSWORD }}
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
-          COLLECTION_MONTH: ${{ steps.params.outputs.month }}
-          SINGLE_AIRPORT: ${{ steps.params.outputs.single_airport }}
-          TARGET_AIRPORT: ${{ steps.params.outputs.airport }}
+          HUB: ${{ matrix.hub }}
           ENVIRONMENT: production
           DEBUG: false
         run: |
           # Create data directory if it doesn't exist
           mkdir -p data/historical
           
-          # Run the collector with the determined parameters
-          if [ "$SINGLE_AIRPORT" = "true" ]; then
-            echo "Collecting data for airport: $TARGET_AIRPORT"
-            python -c "
-          from src.data_collection.collector_daemon import HistoricalDataCollector;
-          collector = HistoricalDataCollector();
-          collector.collect_2024_data('$TARGET_AIRPORT', month=int('$COLLECTION_MONTH'))
+          # Run the collector for this hub
+          # The collector_daemon will handle progress tracking and resuming
+          python -c "
+          from src.data_collection.collector_daemon import HistoricalDataCollector
+          collector = HistoricalDataCollector()
+          
+          # Collect data for 2024
+          collector.collect_2024_data('$HUB')
           "
-          else
-            echo "Collecting data for all hubs for month: $COLLECTION_MONTH"
-            python -c "
-          from src.data_collection.collector_daemon import HistoricalDataCollector;
-          from src.config.settings import SWA_HUBS;
-          collector = HistoricalDataCollector();
-          for airport in SWA_HUBS:
-              collector.collect_2024_data(airport, month=int('$COLLECTION_MONTH'))
-          "
-          fi
           
       - name: Check for changes
         id: changes
@@ -105,15 +97,8 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Stage only JSON files in the historical directory
-          git add "data/historical/*.json"
+          # Stage only JSON files for this hub
+          git add "data/historical/${{ matrix.hub }}_*.json"
           
-          # Create commit message based on collection type
-          if [ "${{ steps.params.outputs.single_airport }}" = "true" ]; then
-            message="Update flight data for ${{ steps.params.outputs.airport }} (Month: ${{ steps.params.outputs.month }})"
-          else
-            message="Update flight data for all hubs (Month: ${{ steps.params.outputs.month }})"
-          fi
-          
-          git commit -m "$message [skip ci]"
+          git commit -m "Update flight data for ${{ matrix.hub }} [skip ci]"
           git push 
