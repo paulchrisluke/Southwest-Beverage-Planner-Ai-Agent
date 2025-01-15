@@ -77,8 +77,12 @@ jobs:
                   return 2.5  # Medium haul
 
           # Initialize predictor with saved model
-          predictor = BeveragePredictor()
-          predictor = predictor.load_model("models/beverage_predictor.joblib")
+          try:
+              predictor = BeveragePredictor(model_path="models/beverage_predictor.joblib")
+              logging.info("Successfully loaded the model")
+          except Exception as e:
+              logging.error(f"Failed to load model: {str(e)}")
+              raise
 
           # Get all historical data files
           data_dir = "data/historical"

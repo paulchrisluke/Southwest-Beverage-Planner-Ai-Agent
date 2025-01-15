@@ -8,7 +8,8 @@ import joblib
 from datetime import datetime
 
 class BeveragePredictor:
-    def __init__(self):
+    def __init__(self, model_path: Optional[str] = None):
+        """Initialize the predictor, optionally loading a saved model."""
         self.model = RandomForestRegressor(
             n_estimators=100,
             max_depth=10,
@@ -25,6 +26,9 @@ class BeveragePredictor:
             'is_business_route',
             'is_vacation_route'
         ]
+        
+        if model_path:
+            self.load_model(model_path)
 
     def _prepare_features(self, flight_data: pd.DataFrame) -> np.ndarray:
         """Prepare features for the model."""
@@ -78,16 +82,18 @@ class BeveragePredictor:
         joblib.dump(model_data, path)
         logging.info(f"Model saved to {path}")
 
-    @classmethod
-    def load_model(cls, path: str) -> 'BeveragePredictor':
+    def load_model(self, path: str) -> 'BeveragePredictor':
         """Load a trained model."""
-        model_data = joblib.load(path)
-        predictor = cls()
-        predictor.model = model_data['model']
-        predictor.scaler = model_data['scaler']
-        predictor.feature_columns = model_data['feature_columns']
-        logging.info(f"Model loaded from {path}")
-        return predictor
+        try:
+            model_data = joblib.load(path)
+            self.model = model_data['model']
+            self.scaler = model_data['scaler']
+            self.feature_columns = model_data['feature_columns']
+            logging.info(f"Model loaded from {path}")
+            return self
+        except Exception as e:
+            logging.error(f"Error loading model from {path}: {str(e)}")
+            raise
 
     def get_feature_importance(self) -> Dict[str, float]:
         """Get feature importance scores."""
