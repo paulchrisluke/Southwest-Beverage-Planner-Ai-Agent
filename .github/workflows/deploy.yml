@@ -49,20 +49,31 @@ jobs:
           predictions = {}
 
           for file in os.listdir(data_dir):
-              if file.endswith(".json"):
+              if file.endswith("_flights.json"):  # Only process flight data files
                   with open(os.path.join(data_dir, file)) as f:
-                      data = json.load(f)
-                      for flight in data["flights"]:
-                          date = datetime.fromisoformat(flight["departure_time"]).strftime("%Y-%m-%d")
-                          all_dates.add(date)
+                      flights = json.load(f)
+                      for flight in flights:  # flights is a list of flight objects
+                          # Extract flight details
+                          flight_number = flight["callsign"].replace("SWA", "")  # Remove SWA prefix
+                          departure_time = datetime.fromtimestamp(flight["firstSeen"]).isoformat()
+                          date = datetime.fromtimestamp(flight["firstSeen"]).strftime("%Y-%m-%d")
                           
+                          # Create a standardized flight object
+                          flight_obj = {
+                              "flight_number": flight_number,
+                              "departure_time": departure_time,
+                              "origin": flight["estDepartureAirport"],
+                              "destination": flight["estArrivalAirport"],
+                              "passenger_count": 150  # Default for now, replace with actual data if available
+                          }
+                          
+                          all_dates.add(date)
                           if date not in flights_by_date:
                               flights_by_date[date] = []
-                          flights_by_date[date].append(flight)
+                          flights_by_date[date].append(flight_obj)
                           
                           # Generate predictions for each flight
-                          flight_id = flight["flight_number"]
-                          predictions[flight_id] = predictor.predict(flight)
+                          predictions[flight_number] = predictor.predict(flight_obj)
 
           # Write dates endpoint
           with open("_site/api/dates.json", "w") as f:
