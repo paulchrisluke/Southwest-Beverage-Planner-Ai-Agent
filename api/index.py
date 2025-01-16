@@ -17,36 +17,59 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Southwest Airlines Beverage Predictor")
 
-# Setup templates directory relative to the api directory
-templates = Jinja2Templates(directory="../templates")
+# Get environment variables or use defaults
+TEMPLATES_DIR = os.getenv("TEMPLATES_DIR", "../templates")
+DATA_DIR = os.getenv("DATA_DIR", "../data")
+MODELS_DIR = os.getenv("MODELS_DIR", "../models")
 
-# Mount static files
-app.mount("/data", StaticFiles(directory="../data"), name="data")
+# Setup templates directory
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
-# Initialize predictor during startup
-model_path = Path("../models/beverage_predictor.joblib")
+# Mount static files if the directory exists
+if os.path.exists(DATA_DIR):
+    app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
+
+# Initialize predictor
 predictor = None
+model_path = Path(MODELS_DIR) / "beverage_predictor.joblib"
 
 @app.on_event("startup")
 async def startup_event():
     global predictor
     try:
-        predictor = joblib.load(model_path)
-        logger.info("Model loaded successfully")
+        if model_path.exists():
+            predictor = joblib.load(model_path)
+            logger.info("Model loaded successfully")
+        else:
+            logger.warning("Model file not found. Running in demo mode.")
+            # Create a mock predictor for demo purposes
+            class MockPredictor:
+                def predict(self, df):
+                    return {
+                        "Coffee": 75,
+                        "Water": 150,
+                        "Soda": 100,
+                        "Beer": 50,
+                        "Wine": 25
+                    }
+            predictor = MockPredictor()
     except Exception as e:
         logger.error(f"Error loading model: {e}")
         raise HTTPException(status_code=500, detail="Error loading model")
 
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
-    # Read and convert markdown to HTML
-    research_paper_path = Path("../docs/research_paper.md")
     try:
-        with open(research_paper_path) as f:
-            content = f.read()
-            html_content = markdown2.markdown(content, extras=['fenced-code-blocks', 'tables'])
-    except FileNotFoundError:
-        html_content = "Research paper content not available."
+        research_paper_path = Path("../docs/research_paper.md")
+        if research_paper_path.exists():
+            with open(research_paper_path) as f:
+                content = f.read()
+                html_content = markdown2.markdown(content, extras=['fenced-code-blocks', 'tables'])
+        else:
+            html_content = "Welcome to Southwest Airlines Beverage Predictor"
+    except Exception as e:
+        logger.error(f"Error reading research paper: {e}")
+        html_content = "Welcome to Southwest Airlines Beverage Predictor"
     
     return templates.TemplateResponse("index.html", {
         "request": request,
