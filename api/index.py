@@ -52,7 +52,5 @@ async def root(request: Request):
             status_code=500
         )
 
-# For Vercel serverless
-async def app_wrapper(scope, receive, send):
-    logger.info(f"Received request with scope: {scope}")
-    await app(scope, receive, send) 
+def handler(request, context):
+    return app 
