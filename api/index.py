@@ -19,16 +19,13 @@ app = FastAPI()
 # Log the current directory and environment
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Directory contents: {os.listdir('.')}")
-logger.info(f"Environment variables: {dict(os.environ)}")
 
-# Get the absolute path to the templates directory
-TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
-logger.info(f"Templates directory path: {TEMPLATES_DIR}")
-logger.info(f"Templates directory exists: {TEMPLATES_DIR.exists()}")
-if TEMPLATES_DIR.exists():
-    logger.info(f"Templates directory contents: {list(TEMPLATES_DIR.iterdir())}")
-
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+# Setup templates
+try:
+    templates = Jinja2Templates(directory="templates")
+    logger.info("Templates directory configured successfully")
+except Exception as e:
+    logger.error(f"Error configuring templates: {e}")
 
 @app.get("/api/test")
 async def test():
@@ -36,36 +33,26 @@ async def test():
     return {
         "status": "ok",
         "message": "API is working",
-        "environment": os.getenv("VERCEL_ENV", "unknown"),
         "cwd": os.getcwd(),
-        "templates_dir": str(TEMPLATES_DIR),
-        "templates_exists": TEMPLATES_DIR.exists()
+        "dir_contents": os.listdir('.')
     }
-
-@app.get("/api")
-async def read_root():
-    logger.info("API endpoint called")
-    return {"message": "Hello from FastAPI"}
 
 @app.get("/")
 async def root(request: Request):
     logger.info("Root endpoint called")
     try:
-        response = templates.TemplateResponse("index.html", {
+        return templates.TemplateResponse("index.html", {
             "request": request,
             "research_content": "Welcome to Southwest Airlines Beverage Predictor"
         })
-        logger.info("Template response created successfully")
-        return response
     except Exception as e:
-        logger.error(f"Error rendering template: {str(e)}")
+        logger.error(f"Error rendering template: {e}")
         return JSONResponse(
             content={"error": str(e)},
             status_code=500
         )
 
-# This is required for Vercel serverless functions
-from mangum import Adapter
-
-# Create handler with custom configurations
-handler = Adapter(app, lifespan="off") 
+# For Vercel serverless
+async def app_wrapper(scope, receive, send):
+    logger.info(f"Received request with scope: {scope}")
+    await app(scope, receive, send) 
