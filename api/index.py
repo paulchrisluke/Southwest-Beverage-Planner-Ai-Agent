@@ -18,16 +18,12 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Southwest Airlines Beverage Predictor")
 
 # Get environment variables or use defaults
-TEMPLATES_DIR = os.getenv("TEMPLATES_DIR", "../templates")
-DATA_DIR = os.getenv("DATA_DIR", "../data")
-MODELS_DIR = os.getenv("MODELS_DIR", "../models")
+TEMPLATES_DIR = os.getenv("TEMPLATES_DIR", "templates")
+DATA_DIR = os.getenv("DATA_DIR", "data")
+MODELS_DIR = os.getenv("MODELS_DIR", "models")
 
 # Setup templates directory
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
-
-# Mount static files if the directory exists
-if os.path.exists(DATA_DIR):
-    app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 
 # Initialize predictor
 predictor = None
@@ -42,16 +38,9 @@ async def startup_event():
             logger.info("Model loaded successfully")
         else:
             logger.warning("Model file not found. Running in demo mode.")
-            # Create a mock predictor for demo purposes
             class MockPredictor:
                 def predict(self, df):
-                    return {
-                        "Coffee": 75,
-                        "Water": 150,
-                        "Soda": 100,
-                        "Beer": 50,
-                        "Wine": 25
-                    }
+                    return {k: 100 for k in ["Coffee", "Water", "Soda", "Beer", "Wine"]}
             predictor = MockPredictor()
     except Exception as e:
         logger.error(f"Error loading model: {e}")
@@ -60,78 +49,86 @@ async def startup_event():
 @app.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
     try:
-        research_paper_path = Path("../docs/research_paper.md")
+        research_paper_path = Path("docs/research_paper.md")
+        html_content = "Welcome to Southwest Airlines Beverage Predictor"
         if research_paper_path.exists():
             with open(research_paper_path) as f:
-                content = f.read()
-                html_content = markdown2.markdown(content, extras=['fenced-code-blocks', 'tables'])
-        else:
-            html_content = "Welcome to Southwest Airlines Beverage Predictor"
+                html_content = markdown2.markdown(f.read(), extras=['fenced-code-blocks', 'tables'])
     except Exception as e:
         logger.error(f"Error reading research paper: {e}")
-        html_content = "Welcome to Southwest Airlines Beverage Predictor"
-    
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "research_content": html_content
-    })
+    return templates.TemplateResponse("index.html", {"request": request, "research_content": html_content})
 
 @app.get("/predictions", response_class=HTMLResponse)
 async def predictions_page(request: Request, flight: str = None, date: str = None):
     try:
-        # Load all flight data from historical directory
         flights = []
-        historical_dir = Path("../data/historical")
+        historical_dir = Path(DATA_DIR) / "historical"
         
-        # If no date is provided, use the most recent date from our data
-        all_dates = set()
-        for file_path in historical_dir.glob("*_flights.json"):
-            if "_progress" not in str(file_path):
-                try:
-                    with open(file_path, "r") as f:
-                        airport_flights = json.load(f)
-                        if isinstance(airport_flights, list):
-                            for f in airport_flights:
-                                if isinstance(f, dict) and f.get("firstSeen"):
-                                    flight_date = datetime.fromtimestamp(f["firstSeen"]).strftime('%Y-%m-%d')
-                                    all_dates.add(flight_date)
-                except Exception as e:
-                    logger.warning(f"Error reading dates from {file_path}: {e}")
-                    continue
-        
-        if not all_dates:
+        if not historical_dir.exists():
+            return templates.TemplateResponse("predictions.html", {
+                "request": request,
+                "error": "Historical data directory not found"
+            })
+
+        # Process only the files we need
+        flight_files = list(historical_dir.glob("*_flights.json"))
+        if not flight_files:
             return templates.TemplateResponse("predictions.html", {
                 "request": request,
                 "error": "No flight data available"
             })
-            
+
+        # Get dates from filenames to avoid reading all files
+        all_dates = set()
+        for file_path in flight_files:
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+                    if isinstance(data, list) and data:
+                        flight_date = datetime.fromtimestamp(data[0]["firstSeen"]).strftime('%Y-%m-%d')
+                        all_dates.add(flight_date)
+                        if date and flight_date == date:
+                            # If we found the requested date, process its flights
+                            flights.extend([{
+                                'flight_number': f["callsign"].replace("SWA", "WN"),
+                                'origin_airport': f["estDepartureAirport"],
+                                'destination_airport': f["estArrivalAirport"],
+                                'date': flight_date,
+                                'departure_time': datetime.fromtimestamp(f["firstSeen"]).strftime('%H:%M'),
+                                'passenger_count': 150
+                            } for f in data if f.get("callsign", "").startswith("SWA")])
+            except Exception as e:
+                logger.warning(f"Error processing {file_path}: {e}")
+                continue
+
+        if not all_dates:
+            return templates.TemplateResponse("predictions.html", {
+                "request": request,
+                "error": "No valid flight dates found"
+            })
+
         sorted_dates = sorted(all_dates, reverse=True)
-        most_recent_date = sorted_dates[0] if sorted_dates else None
-        selected_date = date if date in all_dates else most_recent_date
-            
-        # Load flights for the selected date
-        for file_path in historical_dir.glob("*_flights.json"):
-            if "_progress" not in str(file_path):
+        selected_date = date if date in all_dates else sorted_dates[0]
+
+        # If we haven't loaded flights yet (no specific date was requested)
+        if not flights:
+            # Load flights only for the selected date
+            for file_path in flight_files:
                 try:
                     with open(file_path, "r") as f:
-                        airport_flights = json.load(f)
-                        if isinstance(airport_flights, list):
-                            for f in airport_flights:
-                                if isinstance(f, dict) and f.get("callsign", "").startswith("SWA"):
-                                    if f.get("estDepartureAirport") and f.get("estArrivalAirport"):
-                                        flight_date = datetime.fromtimestamp(f["firstSeen"]).strftime('%Y-%m-%d')
-                                        if flight_date == selected_date:
-                                            flight_info = {
-                                                'flight_number': f["callsign"].replace("SWA", "WN"),
-                                                'origin_airport': f["estDepartureAirport"],
-                                                'destination_airport': f["estArrivalAirport"],
-                                                'date': flight_date,
-                                                'departure_time': datetime.fromtimestamp(f["firstSeen"]).strftime('%H:%M'),
-                                                'passenger_count': 150  # Estimated based on typical 737 load factor
-                                            }
-                                            flights.append(flight_info)
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            current_flights = [{
+                                'flight_number': f["callsign"].replace("SWA", "WN"),
+                                'origin_airport': f["estDepartureAirport"],
+                                'destination_airport': f["estArrivalAirport"],
+                                'date': selected_date,
+                                'departure_time': datetime.fromtimestamp(f["firstSeen"]).strftime('%H:%M'),
+                                'passenger_count': 150
+                            } for f in data if f.get("callsign", "").startswith("SWA") and 
+                                datetime.fromtimestamp(f["firstSeen"]).strftime('%Y-%m-%d') == selected_date]
+                            flights.extend(current_flights)
                 except Exception as e:
-                    logger.warning(f"Error processing file {file_path}: {e}")
                     continue
 
         if not flights:
@@ -143,56 +140,39 @@ async def predictions_page(request: Request, flight: str = None, date: str = Non
             })
 
         flights.sort(key=lambda x: x['departure_time'])
-        
-        selected_flight = None
-        predictions = None
-        total_beverages = 0
-        beverages_per_passenger = 0
-        flight_duration = "0h 0m"
-        
-        if flight:
-            selected_flight = next((f for f in flights if f['flight_number'] == flight), None)
-        
-        if not selected_flight and flights:
-            selected_flight = flights[0]
-            
-        if selected_flight and predictor:
+        selected_flight = next((f for f in flights if f['flight_number'] == flight), flights[0])
+
+        # Get predictions
+        if predictor:
             df = pd.DataFrame([selected_flight])
             raw_predictions = predictor.predict(df)
-            predictions = {}
-            total_beverages = 0
-            for beverage, quantity in raw_predictions.items():
-                confidence = min(95, max(70, 85 + quantity/10))
-                status = 'optimal' if quantity > 0 else 'critical'
-                trend = 'up' if quantity > 100 else 'down' if quantity < 50 else 'stable'
-                trend_color = 'success' if trend == 'up' else 'danger' if trend == 'down' else 'secondary'
-                
-                predictions[beverage] = {
+            predictions = {
+                beverage: {
                     'quantity': int(quantity),
-                    'confidence': int(confidence),
-                    'status': status,
-                    'trend': trend,
-                    'trend_color': trend_color
+                    'confidence': min(95, max(70, 85 + quantity/10)),
+                    'status': 'optimal' if quantity > 0 else 'critical',
+                    'trend': 'up' if quantity > 100 else 'down' if quantity < 50 else 'stable',
+                    'trend_color': 'success' if quantity > 100 else 'danger' if quantity < 50 else 'secondary'
                 }
-                total_beverages += quantity
-            
+                for beverage, quantity in raw_predictions.items()
+            }
+            total_beverages = sum(p['quantity'] for p in predictions.values())
             beverages_per_passenger = round(total_beverages / selected_flight['passenger_count'], 1)
-            flight_duration = "2h 15m"  # TODO: Calculate actual flight duration based on route
         
         return templates.TemplateResponse("predictions.html", {
             "request": request,
             "flights": flights,
             "selected_flight": selected_flight,
             "predictions": predictions,
-            "total_beverages": int(total_beverages),
+            "total_beverages": total_beverages,
             "beverages_per_passenger": beverages_per_passenger,
-            "flight_duration": flight_duration,
+            "flight_duration": "2h 15m",
             "selected_date": selected_date,
             "available_dates": sorted_dates
         })
         
     except Exception as e:
-        logger.error(f"Error loading flight data: {e}")
+        logger.error(f"Error: {e}")
         return templates.TemplateResponse("predictions.html", {
             "request": request,
             "error": str(e)
@@ -217,7 +197,6 @@ async def predict(request: Request, file: UploadFile = File(...)):
             )
         
         predictions = predictor.predict(df)
-        
         return {"predictions": predictions}
         
     except Exception as e:
