@@ -17,13 +17,18 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Log the current directory and environment
+# Log environment for debugging
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Directory contents: {os.listdir('.')}")
+logger.info(f"Environment variables: {dict(os.environ)}")
 
-# Setup templates directory - use absolute path
-TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+try:
+    # Setup templates directory
+    templates = Jinja2Templates(directory="templates")
+    logger.info("Templates directory configured")
+except Exception as e:
+    logger.error(f"Error setting up templates: {e}")
+    raise
 
 # Mount static files
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -51,7 +56,11 @@ async def root(request: Request):
     except Exception as e:
         logger.error(f"Error rendering template: {e}")
         return JSONResponse(
-            content={"error": str(e)},
+            content={
+                "error": str(e),
+                "cwd": os.getcwd(),
+                "dir_contents": os.listdir('.')
+            },
             status_code=500
         )
 
@@ -59,5 +68,6 @@ async def root(request: Request):
 async def health_check():
     return {"status": "ok"}
 
+# Handler for Vercel serverless
 def handler(request, context):
     return app 
