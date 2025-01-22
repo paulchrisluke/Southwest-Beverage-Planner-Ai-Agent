@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import os
 from pathlib import Path
 import logging
@@ -20,12 +21,14 @@ app = FastAPI()
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Directory contents: {os.listdir('.')}")
 
-# Setup templates
-try:
-    templates = Jinja2Templates(directory="templates")
-    logger.info("Templates directory configured successfully")
-except Exception as e:
-    logger.error(f"Error configuring templates: {e}")
+# Setup templates directory - use absolute path
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# Mount static files
+STATIC_DIR = Path(__file__).parent.parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/api/test")
 async def test():
@@ -51,6 +54,10 @@ async def root(request: Request):
             content={"error": str(e)},
             status_code=500
         )
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok"}
 
 def handler(request, context):
     return app 
