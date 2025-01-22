@@ -15,12 +15,16 @@ app = FastAPI()
 
 # Get the absolute path to the templates directory
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+logger.info(f"Templates directory: {TEMPLATES_DIR}")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Mount static files
 static_dir = Path(__file__).parent.parent / "static"
 if static_dir.exists():
+    logger.info(f"Static directory exists: {static_dir}")
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+else:
+    logger.error(f"Static directory does not exist: {static_dir}")
 
 # Research content
 RESEARCH_CONTENT = """
@@ -71,29 +75,50 @@ RESEARCH_CONTENT = """
 @app.get("/")
 async def root(request: Request):
     try:
+        logger.info("Rendering index.html")
         return templates.TemplateResponse(
             "index.html",
             {"request": request, "research_content": RESEARCH_CONTENT}
         )
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Error rendering index.html: {str(e)}")
         return {"error": str(e)}
 
 @app.get("/predictions")
 async def predictions(request: Request):
-    return templates.TemplateResponse("predictions.html", {"request": request})
+    try:
+        logger.info("Rendering predictions.html")
+        return templates.TemplateResponse("predictions.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering predictions.html: {str(e)}")
+        return {"error": str(e)}
 
 @app.get("/model-info")
 async def model_info(request: Request):
-    return templates.TemplateResponse("model_info.html", {"request": request})
+    try:
+        logger.info("Rendering model_info.html")
+        return templates.TemplateResponse("model_info.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering model_info.html: {str(e)}")
+        return {"error": str(e)}
 
 @app.get("/docs")
 async def docs_page(request: Request):
-    return templates.TemplateResponse("docs.html", {"request": request})
+    try:
+        logger.info("Rendering docs.html")
+        return templates.TemplateResponse("docs.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering docs.html: {str(e)}")
+        return {"error": str(e)}
 
 @app.get("/upload")
 async def upload(request: Request):
-    return templates.TemplateResponse("upload.html", {"request": request})
+    try:
+        logger.info("Rendering upload.html")
+        return templates.TemplateResponse("upload.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering upload.html: {str(e)}")
+        return {"error": str(e)}
 
 @app.get("/api/health")
 async def health():
