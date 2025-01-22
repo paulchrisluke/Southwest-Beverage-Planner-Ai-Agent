@@ -22,6 +22,7 @@ app = FastAPI(title="Southwest Airlines Beverage Predictor")
 templates = Jinja2Templates(directory="templates")
 
 # Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Initialize predictor during startup

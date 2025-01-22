@@ -1,13 +1,7 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <title>Southwest Airlines Beverage Predictor</title>
-</head>
-
-<body>
-    <h1>Southwest Airlines Beverage Predictor</h1>
-    <p>{{ research_content }}</p>
-</body>
-
-</html>
+{% block content %}
+<div class="content-section">
+    {{ research_content | safe }}
+</div>
+{% endblock %}
