@@ -13,9 +13,14 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI
 app = FastAPI()
 
-# Setup templates and static files
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Get the absolute path to the templates directory
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# Mount static files
+static_dir = Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Research content
 RESEARCH_CONTENT = """
@@ -64,7 +69,7 @@ RESEARCH_CONTENT = """
 """
 
 @app.get("/")
-async def read_root(request: Request):
+async def root(request: Request):
     try:
         return templates.TemplateResponse(
             "index.html",
